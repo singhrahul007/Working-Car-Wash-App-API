@@ -1,0 +1,51 @@
+# Visual Studio files
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build outputs
+bin/
+obj/
+[Bb]in/
+[Oo]bj/
+
+# NuGet
+.nuget/
+packages/
+*.nupkg
+*.snupkg
+
+# Local development
+appsettings.*.json
+appsettings.Local.json
+appsettings.Development.json
+appsettings.secrets.json
+secrets.json
+launchSettings.json
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+*.log.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Rider IDE
+.idea/
+
+# Docker
+.env
+.dockerignore
+docker-compose.override.yml
+
+# Test results
+TestResults/
