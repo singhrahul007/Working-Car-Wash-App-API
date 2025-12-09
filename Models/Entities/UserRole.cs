@@ -9,7 +9,7 @@ namespace CarWash.Api.Entities
         public int Id { get; set; }
 
         [Required]
-        public int UserId { get; set; }
+        public Guid UserId { get; set; }  // changed to Guid
 
         [Required]
         public int RoleId { get; set; }

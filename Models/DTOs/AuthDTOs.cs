@@ -70,6 +70,44 @@ namespace CarWash.Api.DTOs
         [Required]
         public string Token { get; set; }
     }
-   
-  
+    public class GoogleUserInfo
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string GivenName { get; set; } = string.Empty;
+        public string FamilyName { get; set; } = string.Empty;
+        public string Picture { get; set; } = string.Empty;
+        public bool VerifiedEmail { get; set; }
+    }
+
+    public class FacebookUserInfo
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public FacebookPicture? Picture { get; set; }
+    }
+    public class FacebookPicture
+    {
+        public FacebookPictureData? Data { get; set; }
+    }
+    public class FacebookPictureData
+    {
+        public int Height { get; set; }
+        public int Width { get; set; }
+        public bool IsSilhouette { get; set; }
+        public string? Url { get; set; }
+    }
+
+    public class AppleUserInfo
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public bool EmailVerified { get; set; }
+    }
+
 }

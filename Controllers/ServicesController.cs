@@ -16,11 +16,13 @@ public class ServicesController : ControllerBase {
         _serviceService = serviceService;
     }
 
-    [HttpGet]
-    public IActionResult Get(){
+    // Changed route to avoid conflict with GetAll
+    [HttpGet("preview")]
+    public IActionResult GetPreview(){
         var items = _db.Services.Take(20).ToList();
         return Ok(items);
     }
+
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string category = null)
     {
@@ -31,6 +33,7 @@ public class ServicesController : ControllerBase {
 
         return Ok(result);
     }
+
     [HttpGet("popular")]
     public async Task<IActionResult> GetPopular()
     {

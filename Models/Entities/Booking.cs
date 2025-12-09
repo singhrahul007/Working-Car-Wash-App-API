@@ -1,5 +1,4 @@
 ﻿// Entities/Booking.cs
-using CarWash.Api.Services;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -83,7 +82,7 @@ namespace CarWash.Api.Entities
         public virtual User User { get; set; } = null!;
 
         [ForeignKey("ServiceId")]
-        public virtual ApplicationService Service { get; set; } = null!;
+        public virtual Service Service { get; set; } = null!;
 
         [ForeignKey("AddressId")]
         public virtual Address? Address { get; set; }

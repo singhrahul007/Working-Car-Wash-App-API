@@ -59,10 +59,12 @@ builder.Services.AddStackExchangeRedisCache(options =>
 });
 
 // Register Services
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IOTPService, OTPService>();
 builder.Services.AddScoped<ISocialAuthService, SocialAuthService>();
+//builder.Services.AddScoped<IServiceService, CarWashService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ISmsService, SmsService>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
