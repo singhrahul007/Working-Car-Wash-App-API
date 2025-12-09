@@ -27,7 +27,7 @@ namespace CarWash.Api.Services
             try
             {
                 var query = _context.Services
-                    .Include(s => s.Reviews)
+                    .Include(s => s.ServiceReviews)
                     .Where(s => s.IsActive);
 
                 if (!string.IsNullOrEmpty(category))
@@ -53,7 +53,7 @@ namespace CarWash.Api.Services
             try
             {
                 var service = await _context.Services
-                    .Include(s => s.Reviews)
+                    .Include(s => s.ServiceReviews)
                     .FirstOrDefaultAsync(s => s.Id == id && s.IsActive);
 
                 if (service == null)
@@ -73,7 +73,7 @@ namespace CarWash.Api.Services
             try
             {
                 var services = await _context.Services
-                    .Include(s => s.Reviews)
+                    .Include(s => s.ServiceReviews)
                     .Where(s => s.IsActive && s.IsPopular)
                     .OrderBy(s => s.DisplayOrder)
                     .Take(10)
@@ -183,11 +183,11 @@ namespace CarWash.Api.Services
             var availableSlots = JsonSerializer.Deserialize<List<string>>(service.AvailableSlots ?? "[]");
             var unavailableDates = JsonSerializer.Deserialize<List<DateTime>>(service.UnavailableDates ?? "[]");
 
-            var rating = service.Reviews?.Any() == true
-                ? service.Reviews.Average(r => r.Rating)
+            var rating = service.ServiceReviews?.Any() == true
+                ? service.ServiceReviews.Average(r => r.Rating)
                 : 4.5; // Default rating
 
-            var reviewCount = service.Reviews?.Count ?? 0;
+            var reviewCount = service.ServiceReviews?.Count ?? 0;
 
             return new ServiceDto
             {

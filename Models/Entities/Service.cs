@@ -1,32 +1,79 @@
-﻿// Entities/Service.cs
+﻿// Entities/Service.cs (Replace with this consolidated version)
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace CarWash.Api.Entities
 {
+    [Table("Services")]
     public class Service
     {
+        [Key]
         public int Id { get; set; }
+
+        [Required]
+        [MaxLength(200)]
         public string Name { get; set; } = string.Empty;
+
+        [MaxLength(1000)]
         public string Description { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(100)]
         public string Category { get; set; } = string.Empty;
+
+        [MaxLength(100)]
         public string SubCategory { get; set; } = string.Empty;
+
+        [Required]
+        [Column(TypeName = "decimal(10,2)")]
         public decimal Price { get; set; }
+
+        [Column(TypeName = "decimal(10,2)")]
         public decimal? DiscountedPrice { get; set; }
+
+        [Required]
         public int DurationInMinutes { get; set; }
-        public string? Includes { get; set; } // JSON string
-        public string? ImageUrl { get; set; }
+
+        // JSON serialized list of included features
+        public string Includes { get; set; } = "[]";
+
+        [MaxLength(500)]
+        public string ImageUrl { get; set; } = string.Empty;
+
         public bool IsPopular { get; set; }
+
+        // JSON serialized available time slots
+        public string AvailableSlots { get; set; } = "[]";
+
+        // JSON serialized unavailable dates
+        public string UnavailableDates { get; set; } = "[]";
+
         public bool IsActive { get; set; } = true;
+
         public int DisplayOrder { get; set; }
-        public string? AvailableSlots { get; set; } // JSON string
-        public string? UnavailableDates { get; set; } // JSON string
         public int MaxBookingsPerSlot { get; set; } = 1;
-        public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
 
         // Navigation properties
-        public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
+        [JsonIgnore]
+        public virtual ICollection<ServiceReview> ServiceReviews { get; set; } = new List<ServiceReview>();
+
+        [JsonIgnore]
         public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+
+        // Helper properties (not mapped to database)
+        [NotMapped]
+        public decimal FinalPrice => DiscountedPrice ?? Price;
+
+        [NotMapped]
+        public double AverageRating { get; set; }
+
+        [NotMapped]
+        public int TotalReviews { get; set; }
     }
 }
