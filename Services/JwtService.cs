@@ -8,18 +8,19 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Options;
 
 namespace CarWash.Api.Services
 {
     public class JwtService : IJwtService
     {
         private readonly IConfiguration _config;
-        private readonly JwtSettings _jwtSettings = new JwtSettings();
+        private readonly JwtSettings _jwtSettings;
 
-        public JwtService(IConfiguration config, JwtSettings jwtSettings)
+        public JwtService(IConfiguration config, IOptions<JwtSettings> jwtSettings)
         {
             _config = config;
-            _jwtSettings = jwtSettings;
+            _jwtSettings = jwtSettings.Value; 
         }
 
         public string GenerateToken(string identifier, Guid userId)
@@ -52,7 +53,7 @@ namespace CarWash.Api.Services
 
         public string GenerateToken(User user)
         {
-            var identifier = !string.IsNullOrEmpty(user.Email) ? user.Email : user.MobileNumber ?? "unknown";
+            var identifier = !string.IsNullOrEmpty(user.Email) ? user.Email : user.MobileNumber.ToString() ?? "unknown";
             return GenerateToken(identifier, user.Id);
         }
 
@@ -147,6 +148,17 @@ namespace CarWash.Api.Services
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+        private JwtSettings GetJwtSettings()
+        {
+            return new JwtSettings
+            {
+                Secret = _config["JWT:Secret"] ?? "your-default-secret",
+                Issuer = _config["JWT:Issuer"] ?? "CarWashApi",
+                Audience = _config["JWT:Audience"] ?? "CarWashApp",
+                AccessTokenExpirationMinutes = _config.GetValue<int>("JWT:AccessTokenExpirationMinutes", 60),
+                RefreshTokenExpirationDays = _config.GetValue<int>("JWT:RefreshTokenExpirationDays", 7)
+            };
         }
     }
 }

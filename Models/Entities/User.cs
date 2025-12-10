@@ -18,11 +18,12 @@ namespace CarWash.Api.Entities
         public string? Email { get; set; }
 
         [Phone]
-        [MaxLength(20)]
-        public string? MobileNumber { get; set; }
+        [MaxLength(10)]
+        [RegularExpression(@"^[6-9]\d{9}$", ErrorMessage = "Mobile number must be 10 digits starting with 6, 7, 8, or 9")]
+        public string MobileNumber { get; set; }
         public byte[] PasswordSalt { get; set; } = Array.Empty<byte>();
 
-        [MaxLength(200)]
+        [MaxLength(50)]
         public string? FullName { get; set; }
 
         [MaxLength(500)]

@@ -87,7 +87,7 @@ namespace CarWash.Api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Addresses");
+                    b.ToTable("Addresses", (string)null);
                 });
 
             modelBuilder.Entity("CarWash.Api.Entities.Booking", b =>
@@ -204,7 +204,7 @@ namespace CarWash.Api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Bookings");
+                    b.ToTable("Bookings", (string)null);
                 });
 
             modelBuilder.Entity("CarWash.Api.Entities.OTP", b =>
@@ -424,7 +424,7 @@ namespace CarWash.Api.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("Offers");
+                    b.ToTable("Offers", (string)null);
                 });
 
             modelBuilder.Entity("CarWash.Api.Entities.Product", b =>
@@ -479,7 +479,7 @@ namespace CarWash.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Products");
+                    b.ToTable("Products", (string)null);
                 });
 
             modelBuilder.Entity("CarWash.Api.Entities.Role", b =>
@@ -505,7 +505,7 @@ namespace CarWash.Api.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Roles");
+                    b.ToTable("Roles", (string)null);
                 });
 
             modelBuilder.Entity("CarWash.Api.Entities.Service", b =>
@@ -594,7 +594,7 @@ namespace CarWash.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Services");
+                    b.ToTable("Services", (string)null);
                 });
 
             modelBuilder.Entity("CarWash.Api.Entities.ServiceReview", b =>
@@ -629,7 +629,7 @@ namespace CarWash.Api.Migrations
 
                     b.HasIndex("UserId", "ServiceId");
 
-                    b.ToTable("ServiceReviews");
+                    b.ToTable("ServiceReviews", (string)null);
                 });
 
             modelBuilder.Entity("CarWash.Api.Entities.User", b =>
@@ -731,7 +731,7 @@ namespace CarWash.Api.Migrations
                         .IsUnique()
                         .HasFilter("[MobileNumber] IS NOT NULL");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("CarWash.Api.Entities.UserRole", b =>
@@ -760,7 +760,7 @@ namespace CarWash.Api.Migrations
                     b.HasIndex("UserId", "RoleId")
                         .IsUnique();
 
-                    b.ToTable("UserRoles");
+                    b.ToTable("UserRoles", (string)null);
                 });
 
             modelBuilder.Entity("CarWash.Api.Models.Entities.LoginSession", b =>
@@ -831,7 +831,7 @@ namespace CarWash.Api.Migrations
 
                     b.HasIndex("UserId", "IsActive");
 
-                    b.ToTable("LoginSessions");
+                    b.ToTable("LoginSessions", (string)null);
                 });
 
             modelBuilder.Entity("CarWash.Api.Models.Entities.SocialAuth", b =>
@@ -885,7 +885,7 @@ namespace CarWash.Api.Migrations
 
                     b.HasIndex("UserId", "Provider");
 
-                    b.ToTable("SocialAuths");
+                    b.ToTable("SocialAuths", (string)null);
                 });
 
             modelBuilder.Entity("CarWash.Api.Entities.Address", b =>

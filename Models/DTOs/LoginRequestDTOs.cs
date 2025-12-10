@@ -8,6 +8,7 @@ namespace CarWash.Api.Models.DTOs
         public string LoginType { get; set; } = "mobile"; // "mobile" or "email"
 
         [Phone(ErrorMessage = "Invalid mobile number")]
+        [MaxLength(10)]
         public string? MobileNumber { get; set; }
 
         [EmailAddress(ErrorMessage = "Invalid email address")]

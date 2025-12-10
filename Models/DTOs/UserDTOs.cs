@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace CarWash.Api.DTOs
 {
@@ -7,6 +8,8 @@ namespace CarWash.Api.DTOs
     {
         public Guid Id { get; set; }
         public string? Email { get; set; }
+        [Phone]
+        [MaxLength(10)]
         public string? MobileNumber { get; set; }
         public string? FullName { get; set; }
         public string? ProfilePicture { get; set; }

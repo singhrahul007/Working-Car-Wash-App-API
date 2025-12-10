@@ -9,7 +9,8 @@ namespace CarWash.Api.DTOs
     {
         [EmailAddress]
         public string? Email { get; set; }
-        public string? MobileNumber { get; set; }
+        [MaxLength(10)]
+        public string MobileNumber { get; set; }
 
         [MinLength(6)]
         public string Password { get; set; } = string.Empty;
@@ -33,7 +34,8 @@ namespace CarWash.Api.DTOs
     {
         [Required]
         [Phone]
-        public string MobileNumber { get; set; } = string.Empty;
+        [MaxLength(10)]
+        public string MobileNumber { get; set; } 
 
         [Required]
         [StringLength(6, MinimumLength = 6)]
@@ -46,6 +48,7 @@ namespace CarWash.Api.DTOs
         public string? Email { get; set; }
 
         [Phone]
+        [MaxLength(10)]
         public string? MobileNumber { get; set; }
     }
 

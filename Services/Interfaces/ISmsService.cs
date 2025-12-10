@@ -4,6 +4,6 @@
     {
         Task<bool> SendSMSAsync(string to, string message);
         Task<bool> SendOTPSMSAsync(string to, string otp, string purpose = "login");
-        Task SendOTPSmsAsync(string mobileNumber, string otp, string flow);
+        Task SendOTPSmsAsync(string MobileNumber, string otp, string flow);
     }
 }

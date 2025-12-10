@@ -1,6 +1,7 @@
 using CarWash.Api.Data;
 using CarWash.Api.Interfaces;
 using CarWash.Api.Middleware;
+using CarWash.Api.Models.Configuration; // Add this using
 using CarWash.Api.Services;
 using CarWash.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -58,8 +59,13 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "CarWash_";
 });
 
+// Configure JwtSettings from appsettings.json
+// ADD THIS LINE - Configure JwtSettings
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JWT"));
+
 // Register Services
 builder.Services.AddHttpClient();
+// Register JwtService with correct constructor parameters
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IOTPService, OTPService>();
@@ -76,6 +82,9 @@ builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddMemoryCache(); // Required for ICacheService
 builder.Services.AddScoped<ICacheService, CacheService>();
 builder.Services.AddScoped<IVerificationService, VerificationService>();
+
+// Remove duplicate registration of IJwtService
+// builder.Services.AddScoped<IJwtService, JwtService>(); // Already registered above
 
 builder.Services.AddScoped<IOfferService, OfferService>();
 
@@ -126,11 +135,8 @@ builder.Services.AddCors(options =>
         {
             builder.WithOrigins(
                     "http://localhost:19006", // Expo web
-
                     "exp://localhost:19000",   // Expo
-
                     "http://localhost:8081",    // React Native dev server
-
                     "http://localhost:3000"     // React dev server
                 )
                 .AllowAnyMethod()

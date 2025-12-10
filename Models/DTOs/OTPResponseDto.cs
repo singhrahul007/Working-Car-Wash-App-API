@@ -42,6 +42,8 @@ namespace CarWash.Api.Models.DTOs
         public string Type { get; set; } = string.Empty;
         public string Value { get; set; } = string.Empty;
         public string? Email { get; set; }
+        [Phone]
+        [MaxLength(10)]
         public string? MobileNumber { get; set; }
         public string Flow { get; set; } = string.Empty;
         public Guid? UserId { get; set; }
@@ -88,8 +90,8 @@ namespace CarWash.Api.Models.DTOs
 
         [MaxLength(255)]
         public string? Email { get; set; }
-
-        [MaxLength(20)]
+        [Phone]
+        [MaxLength(10)]
         public string? MobileNumber { get; set; }
 
         [Required]

@@ -69,7 +69,7 @@ namespace CarWash.Api.Services
                 };
 
                 // Use the existing SendSMSAsync method
-                var success = await SendSMSAsync(mobileNumber, message);
+                var success = await SendSMSAsync(mobileNumber.ToString(), message);
 
                 if (!success)
                 {

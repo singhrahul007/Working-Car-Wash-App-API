@@ -27,7 +27,8 @@ namespace CarWash.Api.Entities
         [MaxLength(255)]
         public string? Email { get; set; }
 
-        [MaxLength(20)]
+        [MaxLength(10)]
+        [Phone]
         public string? MobileNumber { get; set; }
 
         [Required]
