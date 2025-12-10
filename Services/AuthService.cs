@@ -68,21 +68,22 @@ namespace CarWash.Api.Services
                    
                 }
                 var cleanMobile = new string(request.MobileNumber.Where(char.IsDigit).ToArray());
-                if (cleanMobile.Length != 10)
-                {
-                    return new AuthResponseDto
-                    {
-                        Success = false,
-                        Message = "Mobile number must be 10 digits"
-                    };
-                }
-                // Check if all characters are digits
-                if (!cleanMobile.All(char.IsDigit))
+                if (request.MobileNumber.Any(c => !char.IsDigit(c)))
                 {
                     return new AuthResponseDto
                     {
                         Success = false,
                         Message = "Mobile number can only contain numbers"
+                    };
+                }
+
+                // Check length
+                if (request.MobileNumber.Length != 10)
+                {
+                    return new AuthResponseDto
+                    {
+                        Success = false,
+                        Message = "Mobile number must be 10 digits"
                     };
                 }
                 // Check if starts with valid digits (6, 7, 8, 9 for Indian numbers)
@@ -344,6 +345,36 @@ namespace CarWash.Api.Services
                     throw new Exception(existingUser.Email == request.Email
                         ? "Email already registered"
                         : "Mobile number already registered");
+                }
+                var cleanMobile = new string(request.MobileNumber.Where(char.IsDigit).ToArray());
+                // Check if contains any non-digit characters
+                if (request.MobileNumber.Any(c => !char.IsDigit(c)))
+                {
+                    return new AuthResponseDto
+                    {
+                        Success = false,
+                        Message = "Mobile number can only contain numbers"
+                    };
+                }
+
+                // Check length
+                if (request.MobileNumber.Length != 10)
+                {
+                    return new AuthResponseDto
+                    {
+                        Success = false,
+                        Message = "Mobile number must be 10 digits"
+                    };
+                }
+                // Check if starts with valid digits (6, 7, 8, 9 for Indian numbers)
+                var firstDigit = cleanMobile[0];
+                if (firstDigit != '6' && firstDigit != '7' && firstDigit != '8' && firstDigit != '9')
+                {
+                    return new AuthResponseDto
+                    {
+                        Success = false,
+                        Message = "Mobile number must start with 6, 7, 8, or 9"
+                    };
                 }
 
                 // Create password hash
