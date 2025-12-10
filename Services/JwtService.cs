@@ -1,21 +1,25 @@
 // Services/JwtService.cs
+using CarWash.Api.DTOs;
+using CarWash.Api.Entities;
+using CarWash.Api.Interfaces;
+using CarWash.Api.Models.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using CarWash.Api.Entities;
-using CarWash.Api.Interfaces;
-using Microsoft.IdentityModel.Tokens;
 
 namespace CarWash.Api.Services
 {
     public class JwtService : IJwtService
     {
         private readonly IConfiguration _config;
+        private readonly JwtSettings _jwtSettings = new JwtSettings();
 
-        public JwtService(IConfiguration config)
+        public JwtService(IConfiguration config, JwtSettings jwtSettings)
         {
             _config = config;
+            _jwtSettings = jwtSettings;
         }
 
         public string GenerateToken(string identifier, Guid userId)
@@ -97,6 +101,52 @@ namespace CarWash.Api.Services
             using var rng = RandomNumberGenerator.Create();
             rng.GetBytes(randomNumber);
             return Convert.ToBase64String(randomNumber);
+        }
+        public AuthResponseDto GenerateAuthResponse(Guid userId, string email, IEnumerable<string> roles)
+        {
+            var accessToken = GenerateAccessToken(userId, email, roles);
+            var refreshToken = GenerateRefreshToken();
+
+            return new AuthResponseDto
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                AccessTokenExpiry = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes),
+                RefreshTokenExpiry = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays)
+            };
+        }
+        public string GenerateAccessToken(Guid userId, string email, IEnumerable<string> roles)
+        {
+            var key = _jwtSettings.Secret;
+            var issuer = _jwtSettings.Issuer;
+            var audience = _jwtSettings.Audience;
+            var expiresInMinutes = _jwtSettings.AccessTokenExpirationMinutes;
+
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var claims = new List<Claim>
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
+                new Claim(JwtRegisteredClaimNames.Email, email),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+
+            // Add role claims
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+
+            var token = new JwtSecurityToken(
+                issuer: issuer,
+                audience: audience,
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(expiresInMinutes),
+                signingCredentials: credentials
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }

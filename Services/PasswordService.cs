@@ -1,6 +1,7 @@
 ﻿// Services/PasswordService.cs
 using CarWash.Api.Interfaces;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace CarWash.Api.Services
@@ -110,10 +111,18 @@ namespace CarWash.Api.Services
         // Optional: Additional helper methods
         public (string Hash, byte[] Salt) CreatePasswordHash(string password)
         {
-            var hash = HashPassword(password, out var salt);
-            return (hash, salt);
+            using var hmac = new HMACSHA512();
+            var salt = hmac.Key;
+            var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+            return (Convert.ToBase64String(hash), salt);
         }
-
+        public bool VerifyPasswordHash(string password, string hash, byte[] salt)
+        {
+            using var hmac = new HMACSHA512(salt);
+            var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+            var computedHashString = Convert.ToBase64String(computedHash);
+            return computedHashString == hash;
+        }
         public bool VerifyPassword(string password, string storedHashWithSalt)
         {
             if (string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(storedHashWithSalt))

@@ -467,7 +467,12 @@ namespace CarWash.Api.Services
         // Helper methods
         private UserDto MapToUserDto(User user)
         {
-            var roles = user.UserRoles?.Select(ur => ur.Role?.Name).Where(name => name != null).ToList() ?? new List<string>();
+            
+            var roles = user.UserRoles
+                        ?.Select(ur => ur.Role?.Name)
+                        .Where(name => name != null)
+                        .Select(name => name!)
+                        .ToArray() ?? Array.Empty<string>(); 
 
             return new UserDto
             {

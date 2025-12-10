@@ -1,19 +1,12 @@
 
 using CarWash.Api.DTOs;
 using CarWash.Api.Models.DTOs;
+using CarWash.Api.Models.Responses;
+using CarWash.Api.Services;
 using CarWash.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-
-// Add these aliases for all conflicting DTOs
-//using LoginRequest = CarWash.Api.Models.DTOs.LoginRequest;
-//using RegisterRequest = CarWash.Api.Models.DTOs.RegisterRequest;
-//using VerifyOTPRequest = CarWash.Api.Models.DTOs.VerifyOTPRequest;
-//using OTPRequest = CarWash.Api.Models.DTOs.OTPRequest;
-//using SocialLoginRequest = CarWash.Api.Models.DTOs.SocialLoginRequest;
-//using ForgotPasswordRequest = CarWash.Api.Models.DTOs.ForgotPasswordRequest;
-//using ResetPasswordRequest = CarWash.Api.Models.DTOs.ResetPasswordRequest;
 namespace CarWash.Api.Controllers
 {
     [Route("api/[controller]")]
@@ -22,52 +15,190 @@ namespace CarWash.Api.Controllers
     {
         private readonly IAuthService _authService;
         private readonly ILogger<AuthController> _logger;
+        private readonly IVerificationService _verificationService;
 
-        public AuthController(IAuthService authService, ILogger<AuthController> logger)
+        public AuthController(IAuthService authService, ILogger<AuthController> logger, IVerificationService verificationService)
         {
             _authService = authService;
             _logger = logger;
+            _verificationService = verificationService;
         }
 
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {
             try
             {
-                // Get IP address and user agent from request
-                request.IpAddress = GetIpAddress();
-                request.UserAgent = GetUserAgent();
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Validation failed",
+                        Errors = ModelState.Values
+                            .SelectMany(v => v.Errors)
+                            .Select(e => e.ErrorMessage)
+                            .ToList()
+                    });
+                }
 
                 var result = await _authService.LoginAsync(request);
 
-                if (!result.Success)
-                    return BadRequest(new { result.Success, result.Message });
-
-                return Ok(result);
+                return Ok(new AuthResponseDto
+                {
+                    Success = true,
+                    Message = "Login successful",
+                    AccessToken = result.AccessToken,
+                    RefreshToken = result.RefreshToken,
+                    AccessTokenExpiry = result.AccessTokenExpiry,
+                    RefreshTokenExpiry = result.RefreshTokenExpiry,
+                    User = result.User
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during login");
-                return StatusCode(500, new { Success = false, Message = "An error occurred during login" });
+                _logger.LogError(ex, "Login failed");
+
+                return Unauthorized(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
         }
-
+        // Controllers/AuthController.cs
         [HttpPost("register")]
+        [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDto request)
         {
             try
             {
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+
+                    return BadRequest(new AuthResponseDto
+                    {
+                        Success = false,
+                        Message = "Validation failed",
+                        User = null
+                    });
+                }
+
+                if (!request.AcceptTerms)
+                {
+                    return BadRequest(new AuthResponseDto
+                    {
+                        Success = false,
+                        Message = "You must accept terms and conditions"
+                    });
+                }
+
                 var result = await _authService.RegisterAsync(request);
 
-                if (!result.Success)
-                    return BadRequest(new { result.Success, result.Message });
-
-                return Ok(result);
+                // Map DTO to Response
+                return Ok(new AuthResponseDto
+                {
+                    Success = result.Success,
+                    Message = result.Message,
+                    AccessToken = result.AccessToken,
+                    RefreshToken = result.RefreshToken,
+                    AccessTokenExpiry = result.AccessTokenExpiry,
+                    RefreshTokenExpiry = result.RefreshTokenExpiry,
+                    SessionId = result.SessionId,
+                    User = result.User != null ? new  UserDto
+                    {
+                        Id = result.User.Id,
+                        Email = result.User.Email,
+                        MobileNumber = result.User.MobileNumber,
+                        FullName = result.User.FullName,
+                        ProfilePicture = result.User.ProfilePicture,
+                        ProfileImageUrl = result.User.ProfileImageUrl,
+                        IsEmailVerified = result.User.IsEmailVerified,
+                        IsMobileVerified = result.User.IsMobileVerified,
+                        TwoFactorEnabled = result.User.TwoFactorEnabled,
+                        TwoFactorMethod = result.User.TwoFactorMethod,
+                        CreatedAt = result.User.CreatedAt,
+                        LastLogin = result.User.LastLogin,
+                        Roles = result.User.Roles
+                    } : null,
+                    RequiresOTP = result.RequiresOTP,
+                    Requires2FA = result.Requires2FA,
+                    TempToken = result.TempToken
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during registration");
-                return StatusCode(500, new { Success = false, Message = "An error occurred during registration" });
+                _logger.LogError(ex, "Registration failed");
+
+                return BadRequest(new AuthResponseDto
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
+            }
+        }
+
+        [HttpPost("verify-email")]
+        [AllowAnonymous]
+        public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequestDto request)
+        {
+            try
+            {
+                var isValid = await _verificationService.VerifyEmailToken(request.Email, request.Token);
+
+                if (isValid)
+                {
+                    // Now issue JWT tokens
+                    var authResponse = await _authService.GenerateTokensAfterVerification(request.Email);
+
+                    // Map DTO to Response
+                    return Ok(new AuthResponseDto
+                    {
+                        Success = authResponse.Success,
+                        Message = authResponse.Message,
+                        AccessToken = authResponse.AccessToken,
+                        RefreshToken = authResponse.RefreshToken,
+                        AccessTokenExpiry = authResponse.AccessTokenExpiry,
+                        RefreshTokenExpiry = authResponse.RefreshTokenExpiry,
+                        SessionId = authResponse.SessionId,
+                        User = authResponse.User != null ? new UserDto
+                        {
+                            Id = authResponse.User.Id,
+                            Email = authResponse.User.Email,
+                            MobileNumber = authResponse.User.MobileNumber,
+                            FullName = authResponse.User.FullName,
+                            ProfilePicture = authResponse.User.ProfilePicture,
+                            ProfileImageUrl = authResponse.User.ProfileImageUrl,
+                            IsEmailVerified = authResponse.User.IsEmailVerified,
+                            IsMobileVerified = authResponse.User.IsMobileVerified,
+                            TwoFactorEnabled = authResponse.User.TwoFactorEnabled,
+                            TwoFactorMethod = authResponse.User.TwoFactorMethod,
+                            CreatedAt = authResponse.User.CreatedAt,
+                            LastLogin = authResponse.User.LastLogin,
+                            Roles = authResponse.User.Roles
+                        } : null
+                    });
+                }
+
+                return BadRequest(new AuthResponseDto
+                {
+                    Success = false,
+                    Message = "Invalid verification token"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Email verification failed");
+                return BadRequest(new AuthResponseDto
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
             }
         }
 
@@ -265,7 +396,31 @@ namespace CarWash.Api.Controllers
                 return StatusCode(500, new { Success = false, Message = "An error occurred while getting profile" });
             }
         }
+        // Separate endpoint for verification
+        //[HttpPost("verify-email")]
+        //[AllowAnonymous]
+        //public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest request)
+        //{
+        //    var isValid = await _verificationService.VerifyEmailToken(request.Email, request.Token);
 
+        //    if (isValid)
+        //    {
+        //        // Update user as verified
+        //        // Now issue JWT tokens
+        //        var authResponse = await _authService.GenerateTokensAfterVerification(request.Email);
+
+        //        return Ok(new AuthApiResponse
+        //        {
+        //            Success = true,
+        //            Message = "Email verified successfully",
+        //            AccessToken = authResponse.AccessToken,
+        //            RefreshToken = authResponse.RefreshToken,
+        //            User = authResponse.User
+        //        });
+        //    }
+
+        //    return BadRequest(new { message = "Invalid verification token" });
+        //}
         #region Helper Methods
 
         private string GetIpAddress()

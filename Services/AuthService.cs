@@ -293,74 +293,182 @@ namespace CarWash.Api.Services
                 return new AuthResponseDto { Success = false, Message = $"Social login failed: {ex.Message}" };
             }
         }
-
+        // Services/AuthService.cs - Fix the RegisterAsync method
         public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
         {
-            // Validate input
-            if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.MobileNumber))
-                return new AuthResponseDto { Success = false, Message = "Email or mobile number is required" };
-
-            if (!request.AcceptTerms)
-                return new AuthResponseDto { Success = false, Message = "You must accept the terms and conditions" };
-
             // Check if user already exists
             var existingUser = await _context.Users
-                .FirstOrDefaultAsync(u =>
-                    (!string.IsNullOrWhiteSpace(request.Email) && u.Email == request.Email) ||
-                    (!string.IsNullOrWhiteSpace(request.MobileNumber) && u.MobileNumber == request.MobileNumber));
+                .FirstOrDefaultAsync(u => u.Email == request.Email ||
+                                         (request.MobileNumber != null && u.MobileNumber == request.MobileNumber));
 
             if (existingUser != null)
             {
-                var field = !string.IsNullOrWhiteSpace(request.Email) && existingUser.Email == request.Email
-                    ? "email"
-                    : "mobile number";
-                return new AuthResponseDto { Success = false, Message = $"User with this {field} already exists" };
+                throw new Exception(existingUser.Email == request.Email
+                    ? "Email already registered"
+                    : "Mobile number already registered");
             }
+
+            // Create password hash
+            var (hash, salt) = _passwordService.CreatePasswordHash(request.Password);
 
             // Create new user
             var user = new User
             {
-                Email = request.Email?.ToLower(),
+                Id = Guid.NewGuid(),
+                Email = request.Email,
                 MobileNumber = request.MobileNumber,
-                PasswordHash = HashPassword(request.Password),
                 FullName = request.FullName,
-                IsEmailVerified = string.IsNullOrWhiteSpace(request.Email), // Will verify via OTP
-                IsMobileVerified = string.IsNullOrWhiteSpace(request.MobileNumber), // Will verify via OTP
+                PasswordHash = hash,
+                PasswordSalt = salt,
+                IsActive = true,
+                AcceptTerms = request.AcceptTerms,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                IsEmailVerified = false,
+                IsMobileVerified = false
             };
+
+            // Get or create customer role
+            var customerRole = await _context.Roles
+                .FirstOrDefaultAsync(r => r.Name == "customer");
+
+            if (customerRole == null)
+            {
+                customerRole = new Role
+                {
+                    Name = "customer",
+                    Description = "Regular customer"
+                };
+                _context.Roles.Add(customerRole);
+                await _context.SaveChangesAsync();
+            }
+
+            // Assign customer role to user
+            user.UserRoles.Add(new UserRole
+            {
+                UserId = user.Id,
+                RoleId = customerRole.Id,
+                AssignedAt = DateTime.UtcNow
+            });
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
+            // Fetch user with roles
+            var createdUser = await _context.Users
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.Id == user.Id);
+            // Generate JWT tokens
+            var roles = createdUser?.UserRoles.Select(ur => ur.Role.Name).ToList();
+            var authResponse = _jwtService.GenerateAuthResponse(createdUser.Id, createdUser?.Email, roles);
 
-            // Send verification OTP if email/mobile provided
-            if (!string.IsNullOrWhiteSpace(request.Email))
-            {
-                await _otpService.GenerateAndSendOTPAsync(new OTPRequestDto
-                {
-                    Type = "email",
-                    Value = request.Email,
-                    Flow = "signup"
-                });
-            }
 
-            if (!string.IsNullOrWhiteSpace(request.MobileNumber))
+            // Create login session
+            var loginSession = new LoginSession
             {
-                await _otpService.GenerateAndSendOTPAsync(new OTPRequestDto
-                {
-                    Type = "mobile",
-                    Value = request.MobileNumber,
-                    Flow = "signup"
-                });
-            }
-
-            return new AuthResponseDto
-            {
-                Success = true,
-                Message = "Registration successful. Please verify your email/mobile.",
-                User = MapToUserDto(user)
+                Id = Guid.NewGuid(),
+                UserId = createdUser.Id,
+                SessionId = Guid.NewGuid().ToString(),
+                RefreshToken = authResponse.RefreshToken,
+                DeviceType = "web",
+                DeviceName = "Web Browser",
+                IsActive = true,
+                LastActivity = DateTime.UtcNow,
+                ExpiresAt = authResponse.RefreshTokenExpiry,
+                CreatedAt = DateTime.UtcNow
             };
+
+            _context.LoginSessions.Add(loginSession);
+
+            // Update user's last login
+            user.LastLogin = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            // Build user profile response
+            authResponse.User = new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FullName = user.FullName,
+                MobileNumber = user.MobileNumber,
+                ProfileImageUrl = user.ProfileImageUrl,
+                IsEmailVerified = user.IsEmailVerified,
+                IsMobileVerified = user.IsMobileVerified,
+                Roles = roles.ToArray()
+            };
+            authResponse.SessionId = loginSession.SessionId;
+            authResponse.Token = authResponse.AccessToken;
+            authResponse.ExpiresAt = authResponse.AccessTokenExpiry;
+
+            return authResponse;
         }
+        //public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
+        //{
+        //    // Validate input
+        //    if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.MobileNumber))
+        //        return new AuthResponseDto { Success = false, Message = "Email or mobile number is required" };
+
+        //    if (!request.AcceptTerms)
+        //        return new AuthResponseDto { Success = false, Message = "You must accept the terms and conditions" };
+
+        //    // Check if user already exists
+        //    var existingUser = await _context.Users
+        //        .FirstOrDefaultAsync(u =>
+        //            (!string.IsNullOrWhiteSpace(request.Email) && u.Email == request.Email) ||
+        //            (!string.IsNullOrWhiteSpace(request.MobileNumber) && u.MobileNumber == request.MobileNumber));
+
+        //    if (existingUser != null)
+        //    {
+        //        var field = !string.IsNullOrWhiteSpace(request.Email) && existingUser.Email == request.Email
+        //            ? "email"
+        //            : "mobile number";
+        //        return new AuthResponseDto { Success = false, Message = $"User with this {field} already exists" };
+        //    }
+
+        //    // Create new user
+        //    var user = new User
+        //    {
+        //        Email = request.Email?.ToLower(),
+        //        MobileNumber = request.MobileNumber,
+        //        PasswordHash = HashPassword(request.Password),
+        //        FullName = request.FullName,
+        //        IsEmailVerified = string.IsNullOrWhiteSpace(request.Email), // Will verify via OTP
+        //        IsMobileVerified = string.IsNullOrWhiteSpace(request.MobileNumber), // Will verify via OTP
+        //        CreatedAt = DateTime.UtcNow,
+        //        UpdatedAt = DateTime.UtcNow
+        //    };
+
+        //    _context.Users.Add(user);
+        //    await _context.SaveChangesAsync();
+
+        //    // Send verification OTP if email/mobile provided
+        //    if (!string.IsNullOrWhiteSpace(request.Email))
+        //    {
+        //        await _otpService.GenerateAndSendOTPAsync(new OTPRequestDto
+        //        {
+        //            Type = "email",
+        //            Value = request.Email,
+        //            Flow = "signup"
+        //        });
+        //    }
+
+        //    if (!string.IsNullOrWhiteSpace(request.MobileNumber))
+        //    {
+        //        await _otpService.GenerateAndSendOTPAsync(new OTPRequestDto
+        //        {
+        //            Type = "mobile",
+        //            Value = request.MobileNumber,
+        //            Flow = "signup"
+        //        });
+        //    }
+
+        //    return new AuthResponseDto
+        //    {
+        //        Success = true,
+        //        Message = "Registration successful. Please verify your email/mobile.",
+        //        User = MapToUserDto(user)
+        //    };
+        //}
 
         public async Task<AuthResponseDto> RefreshTokenAsync(string refreshToken, string sessionId)
         {
@@ -557,7 +665,62 @@ namespace CarWash.Api.Services
                 return ServiceResult<UserDto>.FailureResult($"Failed to get current user: {ex.Message}");
             }
         }
+        public async Task<AuthResponseDto> GenerateTokensAfterVerification(string email)
+        {
+            var user = await _context.Users
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.Email == email);
 
+            if (user == null || !user.IsActive)
+                throw new Exception("User not found or inactive");
+
+            // Mark email as verified (if not already)
+            user.IsEmailVerified = true;
+            await _context.SaveChangesAsync();
+            //Get roles
+            var roles = user.UserRoles.Select(ur => ur.Role.Name).ToArray();
+            var authResponse =  _jwtService.GenerateAuthResponse(user.Id, user.Email, roles);
+
+            // Create login session
+            var loginSession = new LoginSession
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                SessionId = Guid.NewGuid().ToString(),
+                RefreshToken = authResponse.RefreshToken,
+                DeviceType = "web",
+                DeviceName = "Web Browser",
+                IsActive = true,
+                LastActivity = DateTime.UtcNow,
+                ExpiresAt = authResponse.RefreshTokenExpiry,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.LoginSessions.Add(loginSession);
+            user.LastLogin = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            // Set user profile
+            authResponse.User = new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                MobileNumber = user.MobileNumber,
+                FullName = user.FullName,
+                ProfileImageUrl = user.ProfileImageUrl,
+                IsEmailVerified = user.IsEmailVerified,
+                IsMobileVerified = user.IsMobileVerified,
+                TwoFactorEnabled = user.TwoFactorEnabled,
+                TwoFactorMethod = user.TwoFactorMethod,
+                CreatedAt = user.CreatedAt,
+                LastLogin = user.LastLogin,
+                Roles = roles.ToArray()
+            };
+            authResponse.SessionId = loginSession.SessionId;
+            authResponse.Token = authResponse.AccessToken;
+            authResponse.ExpiresAt = authResponse.AccessTokenExpiry;
+
+            return authResponse;
+        }
         #region Private Helper Methods
 
         private string HashPassword(string password)

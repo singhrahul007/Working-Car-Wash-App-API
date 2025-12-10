@@ -17,8 +17,9 @@ namespace CarWash.Api.DTOs
         public DateTime CreatedAt { get; set; }
         public DateTime? LastLogin { get; set; }
         public string? ProfileImageUrl { get; set; }
-        public List<string> Roles { get; set; } = new List<string>();
-       
+        public string[] Roles { get; set; } = Array.Empty<string>();
+        // public List<string> Roles { get; set; } = new List<string>();
+
     }
 
     public class AddressDto

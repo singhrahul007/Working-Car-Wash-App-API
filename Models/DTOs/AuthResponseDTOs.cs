@@ -14,6 +14,10 @@ namespace CarWash.Api.DTOs
         public bool RequiresOTP { get; set; }
         public bool Requires2FA { get; set; }
         public string? TempToken { get; set; }
+        public string AccessToken { get; set; } = string.Empty;
+       
+        public DateTime? AccessTokenExpiry { get; set; } 
+        public DateTime? RefreshTokenExpiry { get; set; } 
     }
 
 }

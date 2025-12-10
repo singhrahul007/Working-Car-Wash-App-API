@@ -20,10 +20,37 @@ namespace CarWash.Api.DTOs
         public string FullName { get; set; } = string.Empty;
         public bool AcceptTerms { get; set; }
     }
+    public class VerifyEmailRequestDto
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        public string Token { get; set; } = string.Empty;
+    }
+    public class VerifyMobileRequestDto
+    {
+        [Required]
+        [Phone]
+        public string MobileNumber { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(6, MinimumLength = 6)]
+        public string Code { get; set; } = string.Empty;
+    }
+    public class SendVerificationRequestDto
+    {
+        [Required]
+        [EmailAddress]
+        public string? Email { get; set; }
+
+        [Phone]
+        public string? MobileNumber { get; set; }
+    }
 
 
 
-   
 
 
 }

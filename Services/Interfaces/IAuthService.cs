@@ -17,6 +17,7 @@ namespace CarWash.Api.Services.Interfaces
         Task<AuthResponseDto> SocialLoginAsync(SocialLoginRequestDto request);
         Task<AuthResponseDto> RefreshTokenAsync(string refreshToken, string sessionId);
         Task<AuthResponseDto> ResetPasswordAsync(ResetPasswordRequestDto request);
+        Task<AuthResponseDto> GenerateTokensAfterVerification(string email);
 
         // OTP methods
         Task<OTPResponseDto> SendOTPAsync(OTPRequestDto request);

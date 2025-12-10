@@ -64,7 +64,6 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IOTPService, OTPService>();
 builder.Services.AddScoped<ISocialAuthService, SocialAuthService>();
-//builder.Services.AddScoped<IServiceService, CarWashService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ISmsService, SmsService>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
@@ -76,13 +75,13 @@ builder.Services.AddScoped<ITwoFactorService, TwoFactorService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddMemoryCache(); // Required for ICacheService
 builder.Services.AddScoped<ICacheService, CacheService>();
-
+builder.Services.AddScoped<IVerificationService, VerificationService>();
 
 builder.Services.AddScoped<IOfferService, OfferService>();
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JWT");
-var key = Encoding.UTF8.GetBytes(jwtSettings["Secret"] ?? "your_super_secret_key_here_at_least_32_characters_long");
+var key = Encoding.UTF8.GetBytes(jwtSettings["Secret"] ?? "e63fP6vxSM2jJKHJXq5u4t1HMewkcdHP6haHRA7B6GUa+7pNg7GuapTqQ9G9INPhJEydAxA+ZvWfSbot7dKpUw==");
 
 builder.Services.AddAuthentication(options =>
 {

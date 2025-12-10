@@ -39,7 +39,7 @@ namespace CarWash.Api.Models.Entities
 
         public bool IsActive { get; set; } = true;
         public DateTime LastActivity { get; set; } = DateTime.UtcNow;
-        public DateTime ExpiresAt { get; set; }
+        public DateTime? ExpiresAt { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation property
