@@ -44,17 +44,20 @@ namespace CarWash.Api.Controllers
                 }
 
                 var result = await _authService.LoginAsync(request);
+                if (!result.Success)
 
-                return Ok(new AuthResponseDto
-                {
-                    Success = true,
-                    Message = "Login successful",
-                    AccessToken = result.AccessToken,
-                    RefreshToken = result.RefreshToken,
-                    AccessTokenExpiry = result.AccessTokenExpiry,
-                    RefreshTokenExpiry = result.RefreshTokenExpiry,
-                    User = result.User
-                });
+                    return BadRequest(result);
+                return Ok(result);
+                //return Ok(new AuthResponseDto
+                //{
+                //    Success = true,
+                //    Message = "Login successful",
+                //    AccessToken = result.AccessToken,
+                //    RefreshToken = result.RefreshToken,
+                //    AccessTokenExpiry = result.AccessTokenExpiry,
+                //    RefreshTokenExpiry = result.RefreshTokenExpiry,
+                //    User = result.User
+                //});
             }
             catch (Exception ex)
             {

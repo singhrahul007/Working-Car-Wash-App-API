@@ -26,7 +26,8 @@ namespace CarWash.Api.Services
         private readonly IEmailService _emailService;
         private readonly ISmsService _smsService;
         private readonly IPasswordService _passwordService;
-
+        private readonly ILogger<AuthService> _logger;
+        private readonly bool _redisEnabled;
         public AuthService(
             AppDbContext context,
             IJwtService jwtService,
@@ -36,7 +37,8 @@ namespace CarWash.Api.Services
             IConfiguration configuration,
             IEmailService emailService,
             ISmsService smsService,
-            IPasswordService passwordService )
+            IPasswordService passwordService,
+            ILogger<AuthService> logger)
         {
             _context = context;
             _jwtService = jwtService;
@@ -47,15 +49,35 @@ namespace CarWash.Api.Services
             _smsService = smsService;
             _configuration = configuration;
             _passwordService = passwordService;
+            _logger = logger;
         }
 
         // Updated method signatures to use Dto suffix
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
         {
-            // Input validation
+            _logger.LogInformation($"Login attempt - Type: {request.LoginType}, IP: {request.IpAddress}");
             if (string.IsNullOrWhiteSpace(request.LoginType))
+            {
+                _logger.LogWarning("Login failed: Login type is required");
                 return new AuthResponseDto { Success = false, Message = "Login type is required" };
+            }
+            if (request.LoginType.ToLower() == "mobile")
+            {
+                _logger.LogInformation($"Mobile login attempt for: {request.MobileNumber}");
 
+                if (string.IsNullOrWhiteSpace(request.MobileNumber))
+                {
+                    _logger.LogWarning("Mobile login failed: Mobile number is required");
+                    return new AuthResponseDto
+                    {
+                        Success = false,
+                        Message = "Mobile number is required"
+                    };
+                }
+                // Input validation
+                if (string.IsNullOrWhiteSpace(request.LoginType))
+                    return new AuthResponseDto { Success = false, Message = "Login type is required" };
+            }
             if (request.LoginType.ToLower() == "mobile")
             {
                 if (string.IsNullOrWhiteSpace(request.MobileNumber))
@@ -80,7 +102,8 @@ namespace CarWash.Api.Services
                 // Check length
                 if (request.MobileNumber.Length != 10)
                 {
-                    return new AuthResponseDto
+                        _logger.LogWarning($"Mobile login failed: Invalid length {cleanMobile.Length} for {cleanMobile}");
+                        return new AuthResponseDto
                     {
                         Success = false,
                         Message = "Mobile number must be 10 digits"
@@ -101,7 +124,7 @@ namespace CarWash.Api.Services
                 var otpRequest = new OTPRequestDto
                 {
                     Type = "mobile",
-                    Value = request?.MobileNumber?.ToString(),
+                    Value = cleanMobile,
                     Flow = "login",
                     DeviceId = request.DeviceId,
                     IpAddress = request.IpAddress
@@ -124,6 +147,8 @@ namespace CarWash.Api.Services
 
                 // Find user by email
                 var user = await _context.Users
+                     .Include(u => u.UserRoles)
+                     .ThenInclude(ur => ur.Role)
                     .FirstOrDefaultAsync(u => u.Email == request.Email && u.IsActive);
 
                 if (user == null)
@@ -179,18 +204,44 @@ namespace CarWash.Api.Services
                 }
 
                 // Create login session and return tokens
+                var roles = user.UserRoles.Select(ur => ur.Role.Name).ToArray();
+                var authResponse = _jwtService.GenerateAuthResponse(user.Id, user.Email, roles);
                 var session = await CreateLoginSessionAsync(user, request);
                 var token = _jwtService.GenerateToken(user.MobileNumber.ToString() ?? user.Email ?? "user", user.Id);
-
+                
+                //var session = new LoginSession
+                //{
+                //    Id = Guid.NewGuid(),
+                //    UserId = user.Id,
+                //    SessionId = Guid.NewGuid().ToString(),
+                //    RefreshToken = authResponse.RefreshToken,
+                //    DeviceType = GetDeviceType(request.UserAgent),
+                //    DeviceName = request.DeviceId,
+                //    OS = GetOSFromUserAgent(request.UserAgent),
+                //    Browser = GetBrowserFromUserAgent(request.UserAgent),
+                //    IpAddress = request.IpAddress,
+                //    UserAgent = request.UserAgent,
+                //    IsActive = true,
+                //    LastActivity = DateTime.UtcNow,
+                //    ExpiresAt = authResponse.RefreshTokenExpiry,
+                //    CreatedAt = DateTime.UtcNow
+                //};
+                //_context.LoginSessions.Add(session);
+                //await _context.SaveChangesAsync();
                 return new AuthResponseDto
                 {
                     Success = true,
                     Message = "Login successful",
-                    Token = token,
-                    RefreshToken = session.RefreshToken,
+                    Token = authResponse.AccessToken,
+                    AccessToken = authResponse.AccessToken,
+                    RefreshToken = authResponse.RefreshToken,
+                    AccessTokenExpiry = authResponse.AccessTokenExpiry,
+                    RefreshTokenExpiry = authResponse.RefreshTokenExpiry,
                     SessionId = session.SessionId,
-                    ExpiresAt = session.ExpiresAt,
-                    User = MapToUserDto(user)
+                    ExpiresAt = authResponse.AccessTokenExpiry,
+                    User = MapToUserDto(user),
+                    RequiresOTP = false,
+                    Requires2FA = false
                 };
             }
 
@@ -210,7 +261,7 @@ namespace CarWash.Api.Services
             if (request.Type.ToLower() == "mobile")
             {
                 user = await _context.Users
-                    .FirstOrDefaultAsync(u => u.MobileNumber.ToString() == request.Value && u.IsActive);
+                    .FirstOrDefaultAsync(u => u.MobileNumber == request.Value && u.IsActive);
 
                 // If user doesn't exist and flow is login, create new user
                 if (user == null && request.Flow.ToLower() == "login")

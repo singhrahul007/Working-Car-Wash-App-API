@@ -43,7 +43,7 @@ namespace CarWash.Api.Entities
 
         [Required]
         [MaxLength(20)]
-        public string ScheduledTime { get; set; }
+        public string? ScheduledTime { get; set; }
 
         [Required]
         [MaxLength(50)]
