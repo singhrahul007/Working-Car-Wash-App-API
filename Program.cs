@@ -13,6 +13,29 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add CORS policy BEFORE building the app
+builder.Services.AddCors(options =>
+{
+options.AddPolicy("AllowSpecificOrigin",
+    policy =>
+    {
+        // Allow specific origin
+        policy.WithOrigins("http://localhost:3000", "https://yourfrontend.com")
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials(); // If using cookies/authentication
+    });
+
+    // OR for development - allow all (not recommended for production)
+    options.AddPolicy("AllowAll",
+        policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        });
+});
+
 // Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -165,6 +188,7 @@ builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
+app.UseCors("AllowSpecificOrigin"); // or "AllowAll" for development
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
