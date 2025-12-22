@@ -71,4 +71,31 @@ namespace CarWash.Api.DTOs
         public string? ManualEntryKey { get; set; }
         public List<string> BackupCodes { get; set; } = new();
     }
+
+    // UserProfileDto.cs
+    public class UserProfileDto
+    {
+        public Guid Id { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string MobileNumber { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public string? ProfilePicture { get; set; }
+        public bool IsEmailVerified { get; set; }
+        public bool IsMobileVerified { get; set; }
+        public bool TwoFactorEnabled { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? LastLogin { get; set; }
+        public int TotalBookings { get; set; }
+        public int LoyaltyPoints { get; set; }
+        public string MemberTier { get; set; } = "Bronze";
+        public string? JoinedDateFormatted { get; set; }
+    }
+
+    // UpdateProfileRequest.cs
+    public class UpdateProfileRequest
+    {
+        public string? FullName { get; set; }
+        public string? MobileNumber { get; set; }
+        public string? ProfilePicture { get; set; }
+    }
 }

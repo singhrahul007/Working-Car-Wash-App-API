@@ -1,4 +1,5 @@
 
+using CarWash.Api.Data;
 using CarWash.Api.DTOs;
 using CarWash.Api.Models.DTOs;
 using CarWash.Api.Models.Responses;
@@ -6,6 +7,8 @@ using CarWash.Api.Services;
 using CarWash.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace CarWash.Api.Controllers
 {
@@ -16,12 +19,16 @@ namespace CarWash.Api.Controllers
         private readonly IAuthService _authService;
         private readonly ILogger<AuthController> _logger;
         private readonly IVerificationService _verificationService;
+        private readonly AppDbContext _context;
 
-        public AuthController(IAuthService authService, ILogger<AuthController> logger, IVerificationService verificationService)
+
+        public AuthController(IAuthService authService, ILogger<AuthController> logger, IVerificationService verificationService,
+            AppDbContext _context)
         {
             _authService = authService;
             _logger = logger;
             _verificationService = verificationService;
+            _context = _context;
         }
 
         [HttpPost("login")]
@@ -298,7 +305,12 @@ namespace CarWash.Api.Controllers
 
                 var sessionId = Request.Headers["X-Session-Id"].FirstOrDefault();
                 await _authService.LogoutAsync(userId, sessionId);
-
+                var user = await _context.Users.FindAsync(userId);
+                if (user != null)
+                {
+                    //user.LastLogout = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                }
                 return Ok(new { Success = true, Message = "Logged out successfully" });
             }
             catch (Exception ex)
@@ -371,13 +383,23 @@ namespace CarWash.Api.Controllers
             {
                 var userId = GetUserId();
                 if (userId == Guid.Empty)
-                    return Unauthorized();
+                    return Unauthorized(new { Success = false, Message = "Unauthorized" });
 
                 var user = await _authService.GetUserByIdAsync(userId);
                 if (user == null)
                     return NotFound(new { Success = false, Message = "User not found" });
+                // Get user statistics (you'll need to implement these methods)
+                var totalBookings = await _context.Bookings
+                    .CountAsync(b => b.UserId == userId && b.Status != "Cancelled");
+                //var loyaltyPoints = await _context.LoyaltyPoints
+                //   .Where(lp => lp.UserId == userId && lp.IsActive)
+                //   .SumAsync(lp => lp.Points);
 
-                var userDto = new UserDto
+                // Determine member tier based on points or bookings
+                //var memberTier = loyaltyPoints >= 1000 ? "Gold" :
+                //                loyaltyPoints >= 500 ? "Silver" : "Bronze";
+
+                var userProfile = new UserProfileDto
                 {
                     Id = user.Id,
                     Email = user.Email,
@@ -388,10 +410,14 @@ namespace CarWash.Api.Controllers
                     IsMobileVerified = user.IsMobileVerified,
                     TwoFactorEnabled = user.TwoFactorEnabled,
                     CreatedAt = user.CreatedAt,
-                    LastLogin = user.LastLogin
+                    LastLogin = user.LastLogin,
+                    TotalBookings = totalBookings,
+                   // LoyaltyPoints = loyaltyPoints,
+                    //MemberTier = memberTier,
+                    JoinedDateFormatted = user.CreatedAt.ToString("dd MMM yyyy", CultureInfo.InvariantCulture)
                 };
 
-                return Ok(new { Success = true, User = userDto });
+                return Ok(new { Success = true, User = userProfile });
             }
             catch (Exception ex)
             {
@@ -399,6 +425,123 @@ namespace CarWash.Api.Controllers
                 return StatusCode(500, new { Success = false, Message = "An error occurred while getting profile" });
             }
         }
+        [Authorize]
+        [HttpPut("profile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+        {
+            try
+            {
+                var userId = GetUserId();
+                if (userId == Guid.Empty)
+                    return Unauthorized();
+
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null)
+                    return NotFound(new { Success = false, Message = "User not found" });
+
+                // Update fields if provided
+                if (!string.IsNullOrWhiteSpace(request.FullName))
+                    user.FullName = request.FullName;
+
+                if (!string.IsNullOrWhiteSpace(request.MobileNumber))
+                    user.MobileNumber = request.MobileNumber;
+
+                if (!string.IsNullOrWhiteSpace(request.ProfilePicture))
+                    user.ProfilePicture = request.ProfilePicture;
+
+                user.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    Success = true,
+                    Message = "Profile updated successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating profile");
+                return StatusCode(500, new { Success = false, Message = "An error occurred while updating profile" });
+            }
+        }
+
+        [Authorize]
+        [HttpPost("upload-profile-picture")]
+        public async Task<IActionResult> UploadProfilePicture(IFormFile file)
+        {
+            try
+            {
+                var userId = GetUserId();
+                if (userId == Guid.Empty)
+                    return Unauthorized();
+
+                if (file == null || file.Length == 0)
+                    return BadRequest(new { Success = false, Message = "No file uploaded" });
+
+                // Validate file size (max 5MB)
+                if (file.Length > 5 * 1024 * 1024)
+                    return BadRequest(new { Success = false, Message = "File size too large (max 5MB)" });
+
+                // Validate file type
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                if (!allowedExtensions.Contains(extension))
+                    return BadRequest(new { Success = false, Message = "Invalid file type" });
+
+                // Generate unique filename
+                var fileName = $"{userId}_{Guid.NewGuid()}{extension}";
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "profile-pictures");
+
+                // Create directory if it doesn't exist
+                if (!Directory.Exists(uploadsFolder))
+                    Directory.CreateDirectory(uploadsFolder);
+
+                var filePath = Path.Combine(uploadsFolder, fileName);
+
+                // Save file
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                // Update user profile picture in database
+                var user = await _context.Users.FindAsync(userId);
+                if (user != null)
+                {
+                    // Delete old profile picture if exists
+                    if (!string.IsNullOrEmpty(user.ProfilePicture))
+                    {
+                        //var oldFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", user.ProfilePicture);
+                        //if (File.Exists(oldFilePath))
+                        //    File.Delete(oldFilePath);
+                    }
+
+                    user.ProfilePicture = $"/uploads/profile-pictures/{fileName}";
+                    user.UpdatedAt = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                }
+
+                // Return the URL (adjust based on your server configuration)
+                var fileUrl = $"{Request.Scheme}://{Request.Host}/uploads/profile-pictures/{fileName}";
+
+                return Ok(new
+                {
+                    Success = true,
+                    Message = "Profile picture uploaded successfully",
+                    ProfilePicture = fileUrl
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error uploading profile picture");
+                return StatusCode(500, new { Success = false, Message = "An error occurred while uploading profile picture" });
+            }
+        }
+
+        // Extend the existing Logout endpoint to also clear local storage data
+
+
         // Separate endpoint for verification
         //[HttpPost("verify-email")]
         //[AllowAnonymous]

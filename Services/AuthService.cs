@@ -514,7 +514,8 @@ namespace CarWash.Api.Services
                     ProfileImageUrl = user.ProfileImageUrl,
                     IsEmailVerified = user.IsEmailVerified,
                     IsMobileVerified = user.IsMobileVerified,
-                    Roles = roles.ToArray()
+                    Roles = roles.ToArray(),
+                    CreatedAt = user.CreatedAt
                 };
                 authResponse.SessionId = loginSession.SessionId;
                 authResponse.Token = authResponse.AccessToken;
