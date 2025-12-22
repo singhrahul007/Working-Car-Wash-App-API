@@ -1,4 +1,5 @@
 ﻿// Entities/Service.cs (Replace with this consolidated version)
+using CarWash.Api.Models.Entities;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -36,6 +37,13 @@ namespace CarWash.Api.Entities
 
         [Required]
         public int DurationInMinutes { get; set; }
+        public string DefaultTimeSlots { get; set; }
+
+        // Default slot duration in minutes
+        public int SlotDuration { get; set; } = 60;
+
+        // Maximum bookings per slot
+        public int MaxBookingsPerSlot { get; set; } = 5;
 
         // JSON serialized list of included features
         public string Includes { get; set; } = "[]";
@@ -54,12 +62,12 @@ namespace CarWash.Api.Entities
         public bool IsActive { get; set; } = true;
 
         public int DisplayOrder { get; set; }
-        public int MaxBookingsPerSlot { get; set; } = 1;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
 
         // Navigation properties
+        public virtual ICollection<Slot> Slots { get; set; }
         [JsonIgnore]
         public virtual ICollection<ServiceReview> ServiceReviews { get; set; } = new List<ServiceReview>();
 
