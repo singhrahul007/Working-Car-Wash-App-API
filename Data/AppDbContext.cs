@@ -1,4 +1,5 @@
 ﻿using CarWash.Api.Models.Entities;
+using CarWash.Api.Models.Entities.AC;
 using Microsoft.EntityFrameworkCore;
 
 namespace CarWash.Api.Data
@@ -23,7 +24,8 @@ namespace CarWash.Api.Data
         public DbSet<OTP> OTPs { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<Slot> Slots { get; set; }
-
+        public DbSet<ACService> ACServices { get; set; }
+        public DbSet<ACBooking> ACBookings { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -41,6 +43,8 @@ namespace CarWash.Api.Data
             ConfigureServiceReviewEntity(modelBuilder);
             ConfigureOfferEntity(modelBuilder);
             ConfigureOTPEntity(modelBuilder);
+            ConfigureACServiceEntity(modelBuilder);
+            ConfigureACBookingEntity(modelBuilder);
         }
 
         private void ConfigureUserEntity(ModelBuilder modelBuilder)
@@ -398,6 +402,119 @@ namespace CarWash.Api.Data
                     .WithMany(u => u.OTPs)
                     .HasForeignKey(o => o.UserId)
                     .OnDelete(DeleteBehavior.SetNull);
+            });
+        }
+
+        // Add this method to your AppDbContext class
+        private void ConfigureACServiceEntity(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<ACService>(entity =>
+            {
+                entity.ToTable("ACServices");
+                entity.HasKey(s => s.Id);
+
+                entity.Property(s => s.Name)
+                    .IsRequired()
+                    .HasMaxLength(200);
+
+                entity.Property(s => s.Description)
+                    .HasMaxLength(1000);
+
+                entity.Property(s => s.Category)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(s => s.Price)
+                    .HasColumnType("decimal(10,2)")
+                    .IsRequired();
+
+                entity.Property(s => s.DurationDisplay)
+                    .HasMaxLength(50);
+
+                entity.Property(s => s.Includes)
+                    .HasDefaultValue("[]");
+
+                entity.Property(s => s.CreatedAt)
+                    .HasDefaultValueSql("GETUTCDATE()");
+
+                entity.HasIndex(s => s.Category);
+                entity.HasIndex(s => s.IsActive);
+                entity.HasIndex(s => s.IsPopular);
+                entity.HasIndex(s => s.DisplayOrder);
+            });
+        }
+
+        private void ConfigureACBookingEntity(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<ACBooking>(entity =>
+            {
+                entity.ToTable("ACBookings");
+                entity.HasKey(b => b.Id);
+
+                entity.Property(b => b.BookingId)
+                    .IsRequired()
+                    .HasMaxLength(20);
+
+                entity.Property(b => b.CustomerPhone)
+                    .IsRequired()
+                    .HasMaxLength(15);
+
+                entity.Property(b => b.CustomerAddress)
+                    .IsRequired()
+                    .HasMaxLength(500);
+
+                entity.Property(b => b.ACType)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(b => b.ACBrand)
+                    .HasMaxLength(100);
+
+                entity.Property(b => b.ACCapacity)
+                    .HasMaxLength(100);
+
+                entity.Property(b => b.UsageType)
+                    .HasMaxLength(100);
+
+                entity.Property(b => b.ScheduledTime)
+                    .IsRequired()
+                    .HasMaxLength(20);
+
+                entity.Property(b => b.Status)
+                    .IsRequired()
+                    .HasMaxLength(50)
+                    .HasDefaultValue("pending");
+
+                entity.Property(b => b.TotalAmount)
+                    .HasColumnType("decimal(10,2)")
+                    .IsRequired();
+
+                entity.Property(b => b.PaymentStatus)
+                    .HasMaxLength(50)
+                    .HasDefaultValue("pending");
+
+                entity.Property(b => b.SpecialInstructions)
+                    .HasMaxLength(500);
+
+                entity.Property(b => b.SelectedServices)
+                    .HasDefaultValue("[]");
+
+                entity.Property(b => b.CreatedAt)
+                    .HasDefaultValueSql("GETUTCDATE()");
+
+                // Foreign key relationship to User
+                entity.HasOne(b => b.User)
+                    .WithMany()
+                    .HasForeignKey(b => b.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Indexes
+                entity.HasIndex(b => b.BookingId).IsUnique();
+                entity.HasIndex(b => b.UserId);
+                entity.HasIndex(b => b.Status);
+                entity.HasIndex(b => b.PaymentStatus);
+                entity.HasIndex(b => b.ScheduledDate);
+                entity.HasIndex(b => b.CreatedAt);
             });
         }
     }
