@@ -1,6 +1,6 @@
 ﻿using CarWash.Api.Data;
 using CarWash.Api.DTOs;
-using CarWash.Api.Entities;
+using CarWash.Api.Models.Entities;
 using CarWash.Api.Interfaces;
 using CarWash.Api.Utilities;
 using Microsoft.EntityFrameworkCore;

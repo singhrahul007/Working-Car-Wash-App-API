@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace CarWash.Api.Entities
+namespace CarWash.Api.Models.Entities
 {
     [Table("Users")]
     public class User

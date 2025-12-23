@@ -1,6 +1,5 @@
 ﻿using CarWash.Api.Data;
 using CarWash.Api.DTOs;  // Make sure this is the only DTO namespace
-using CarWash.Api.Entities;
 using CarWash.Api.Interfaces;
 using CarWash.Api.Models.DTOs;
 using CarWash.Api.Models.Entities;
@@ -8,8 +7,6 @@ using CarWash.Api.Services.Interfaces;
 using CarWash.Api.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Configuration;
-using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 

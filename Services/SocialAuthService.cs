@@ -3,7 +3,6 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using CarWash.Api.Data;
 using CarWash.Api.DTOs;
-using CarWash.Api.Entities;
 using CarWash.Api.Models.Entities;
 using CarWash.Api.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;

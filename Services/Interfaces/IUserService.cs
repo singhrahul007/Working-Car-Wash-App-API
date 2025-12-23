@@ -1,10 +1,8 @@
 ﻿// Services/Interfaces/IUserService.cs
 using CarWash.Api.DTOs;
-using CarWash.Api.Entities;
+using CarWash.Api.Models.Entities;
 using CarWash.Api.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+
 
 namespace CarWash.Api.Services.Interfaces
 {

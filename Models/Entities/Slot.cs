@@ -28,7 +28,8 @@ namespace CarWash.Api.Models.Entities
 
         [Required]
         public int CurrentBookings { get; set; } = 0; // Current booked count
-
+        [Timestamp]
+        public byte[] RowVersion { get; set; }
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

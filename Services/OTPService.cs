@@ -4,7 +4,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using CarWash.Api.Data;
 using CarWash.Api.Services.Interfaces;
 using CarWash.Api.Models.DTOs;
-using CarWash.Api.Entities;
+using CarWash.Api.Models.Entities;
 
 
 namespace CarWash.Api.Services

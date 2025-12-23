@@ -6,7 +6,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
-namespace CarWash.Api.Entities
+namespace CarWash.Api.Models.Entities
 {
     [Table("Services")]
     public class Service
@@ -53,8 +53,7 @@ namespace CarWash.Api.Entities
 
         public bool IsPopular { get; set; }
 
-        // JSON serialized available time slots
-        public string AvailableSlots { get; set; } = "[]";
+  
 
         // JSON serialized unavailable dates
         public string UnavailableDates { get; set; } = "[]";
@@ -68,6 +67,8 @@ namespace CarWash.Api.Entities
 
         // Navigation properties
         public virtual ICollection<Slot> Slots { get; set; }
+        // JSON serialized available time slots
+        public string AvailableSlots { get; set; } = "[]";
         [JsonIgnore]
         public virtual ICollection<ServiceReview> ServiceReviews { get; set; } = new List<ServiceReview>();
 

@@ -1,6 +1,6 @@
 // Services/JwtService.cs
 using CarWash.Api.DTOs;
-using CarWash.Api.Entities;
+using CarWash.Api.Models.Entities;
 using CarWash.Api.Interfaces;
 using CarWash.Api.Models.Configuration;
 using Microsoft.IdentityModel.Tokens;

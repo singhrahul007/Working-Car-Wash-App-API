@@ -1,5 +1,5 @@
 using CarWash.Api.Data;
-using CarWash.Api.Entities;
+using CarWash.Api.Models.Entities;
 using CarWash.Api.Interfaces;
 using CarWash.Api.Models;
 using Microsoft.AspNetCore.Authorization;

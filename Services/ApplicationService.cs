@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using CarWash.Api.Entities;
+using CarWash.Api.Models.Entities;
 using CarWash.Api.DTOs.CarWash.Api.DTOs;
 
 namespace CarWash.Api.Services
@@ -177,7 +177,7 @@ namespace CarWash.Api.Services
         }
 
         // FIXED: Changed from WashingService to CarWash.Api.Entities.Service
-        private ServiceDto MapToServiceDto(CarWash.Api.Entities.Service service)
+        private ServiceDto MapToServiceDto(Service service)
         {
             var includes = JsonSerializer.Deserialize<List<string>>(service.Includes ?? "[]");
             var availableSlots = JsonSerializer.Deserialize<List<string>>(service.AvailableSlots ?? "[]");

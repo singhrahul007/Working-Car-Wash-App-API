@@ -4,6 +4,7 @@ using CarWash.Api.Middleware;
 using CarWash.Api.Models.Configuration; // Add this using
 using CarWash.Api.Services;
 using CarWash.Api.Services.Interfaces;
+using CarWash.Api.Services.Interfaces.Slots;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -105,7 +106,7 @@ builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddMemoryCache(); // Required for ICacheService
 builder.Services.AddScoped<ICacheService, CacheService>();
 builder.Services.AddScoped<IVerificationService, VerificationService>();
-
+builder.Services.AddScoped<ISlotService, SlotService>();
 // Remove duplicate registration of IJwtService
 // builder.Services.AddScoped<IJwtService, JwtService>(); // Already registered above
 

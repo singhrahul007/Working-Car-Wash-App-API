@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace CarWash.Api.Entities
+namespace CarWash.Api.Models.Entities
 {
     public class UserRole
     {

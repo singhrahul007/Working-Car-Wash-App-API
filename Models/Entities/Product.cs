@@ -1,7 +1,7 @@
 ﻿// Entities/Product.cs
 using System;
 
-namespace CarWash.Api.Entities
+namespace CarWash.Api.Models.Entities
 {
     public class Product
     {

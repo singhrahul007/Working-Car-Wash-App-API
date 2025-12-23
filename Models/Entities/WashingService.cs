@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
-namespace CarWash.Api.Entities
+namespace CarWash.Api.Models.Entities
 {
     [Table("Services")]
     public class WashingService

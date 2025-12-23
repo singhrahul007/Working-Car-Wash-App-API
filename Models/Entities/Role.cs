@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
-namespace CarWash.Api.Entities
+namespace CarWash.Api.Models.Entities
 {
     public class Role
     {

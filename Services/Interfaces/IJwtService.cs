@@ -1,6 +1,6 @@
 ﻿// Update CarWash.Api.Services.IJwtService to match
 using CarWash.Api.DTOs;
-using CarWash.Api.Entities;
+using CarWash.Api.Models.Entities;
 
 namespace CarWash.Api.Services
 {

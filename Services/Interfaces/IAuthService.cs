@@ -1,6 +1,6 @@
 ﻿// Services/Interfaces/IAuthService.cs
 using CarWash.Api.Models.DTOs;
-using CarWash.Api.Entities;
+using CarWash.Api.Models.Entities;
 using CarWash.Api.Utilities;
 using System;
 using System.Threading.Tasks;

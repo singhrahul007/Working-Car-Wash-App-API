@@ -1,4 +1,4 @@
-﻿using CarWash.Api.Entities;
+﻿using CarWash.Api.Models.Entities;
 using System.ComponentModel.DataAnnotations;
 
 namespace CarWash.Api.Models.Entities

@@ -1,6 +1,4 @@
-﻿// Data/AppDbContext.cs
-using CarWash.Api.Entities;
-using CarWash.Api.Models.Entities;
+﻿using CarWash.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace CarWash.Api.Data
@@ -24,21 +22,39 @@ namespace CarWash.Api.Data
         public DbSet<Offer> Offers { get; set; }
         public DbSet<OTP> OTPs { get; set; }
         public DbSet<Product> Products { get; set; }
+        public DbSet<Slot> Slots { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // User configuration
+            ConfigureUserEntity(modelBuilder);
+            ConfigureRoleEntity(modelBuilder);
+            ConfigureUserRoleEntity(modelBuilder);
+            ConfigureLoginSessionEntity(modelBuilder);
+            ConfigureSocialAuthEntity(modelBuilder);
+            ConfigureAddressEntity(modelBuilder);
+            ConfigureProductEntity(modelBuilder);
+            ConfigureServiceEntity(modelBuilder);
+            ConfigureSlotEntity(modelBuilder);
+            ConfigureBookingEntity(modelBuilder);
+            ConfigureServiceReviewEntity(modelBuilder);
+            ConfigureOfferEntity(modelBuilder);
+            ConfigureOTPEntity(modelBuilder);
+        }
+
+        private void ConfigureUserEntity(ModelBuilder modelBuilder)
+        {
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(u => u.Id);
                 entity.HasIndex(u => u.Email).IsUnique().HasFilter("[Email] IS NOT NULL");
                 entity.HasIndex(u => u.MobileNumber).IsUnique().HasFilter("[MobileNumber] IS NOT NULL");
+
                 entity.Property(u => u.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
                 entity.Property(u => u.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
 
-                // Relationships (no cascade on Bookings to avoid multiple cascade paths)
+                // Relationships
                 entity.HasMany(u => u.UserRoles)
                     .WithOne(ur => ur.User)
                     .HasForeignKey(ur => ur.UserId)
@@ -64,14 +80,15 @@ namespace CarWash.Api.Data
                     .HasForeignKey(sr => sr.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                // OTPs - soft delete (set null)
                 entity.HasMany(u => u.OTPs)
                     .WithOne(o => o.User)
                     .HasForeignKey(o => o.UserId)
                     .OnDelete(DeleteBehavior.SetNull);
             });
+        }
 
-            // Role configuration
+        private void ConfigureRoleEntity(ModelBuilder modelBuilder)
+        {
             modelBuilder.Entity<Role>(entity =>
             {
                 entity.HasKey(r => r.Id);
@@ -79,8 +96,10 @@ namespace CarWash.Api.Data
                 entity.HasIndex(r => r.Name).IsUnique();
                 entity.Property(r => r.Description).HasMaxLength(200);
             });
+        }
 
-            // UserRole configuration
+        private void ConfigureUserRoleEntity(ModelBuilder modelBuilder)
+        {
             modelBuilder.Entity<UserRole>(entity =>
             {
                 entity.HasKey(ur => ur.Id);
@@ -97,8 +116,10 @@ namespace CarWash.Api.Data
                     .HasForeignKey(ur => ur.RoleId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
+        }
 
-            // LoginSession configuration
+        private void ConfigureLoginSessionEntity(ModelBuilder modelBuilder)
+        {
             modelBuilder.Entity<LoginSession>(entity =>
             {
                 entity.HasKey(ls => ls.Id);
@@ -123,8 +144,10 @@ namespace CarWash.Api.Data
                     .HasForeignKey(ls => ls.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
+        }
 
-            // SocialAuth configuration
+        private void ConfigureSocialAuthEntity(ModelBuilder modelBuilder)
+        {
             modelBuilder.Entity<SocialAuth>(entity =>
             {
                 entity.HasKey(sa => sa.Id);
@@ -145,12 +168,13 @@ namespace CarWash.Api.Data
                     .HasForeignKey(sa => sa.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
+        }
 
-            // Address configuration
+        private void ConfigureAddressEntity(ModelBuilder modelBuilder)
+        {
             modelBuilder.Entity<Address>(entity =>
             {
                 entity.HasKey(a => a.Id);
-
                 entity.Property(a => a.FullAddress).IsRequired().HasMaxLength(200);
                 entity.Property(a => a.City).IsRequired().HasMaxLength(100);
                 entity.Property(a => a.State).IsRequired().HasMaxLength(100);
@@ -165,8 +189,10 @@ namespace CarWash.Api.Data
                     .HasForeignKey(a => a.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
+        }
 
-            // Product configuration
+        private void ConfigureProductEntity(ModelBuilder modelBuilder)
+        {
             modelBuilder.Entity<Product>(entity =>
             {
                 entity.HasKey(p => p.Id);
@@ -180,12 +206,13 @@ namespace CarWash.Api.Data
                 entity.Property(p => p.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
                 entity.Property(p => p.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
             });
+        }
 
-            // Service configuration
+        private void ConfigureServiceEntity(ModelBuilder modelBuilder)
+        {
             modelBuilder.Entity<Service>(entity =>
             {
                 entity.HasKey(s => s.Id);
-
                 entity.Property(s => s.Name).IsRequired().HasMaxLength(200);
                 entity.Property(s => s.Description).HasMaxLength(1000);
                 entity.Property(s => s.Category).IsRequired().HasMaxLength(100);
@@ -197,46 +224,84 @@ namespace CarWash.Api.Data
                 entity.Property(s => s.IsPopular).HasDefaultValue(false);
                 entity.Property(s => s.IsActive).HasDefaultValue(true);
                 entity.Property(s => s.DisplayOrder).HasDefaultValue(0);
-                entity.Property(s => s.MaxBookingsPerSlot).HasDefaultValue(1);
+                entity.Property(s => s.MaxBookingsPerSlot).HasDefaultValue(5);
                 entity.Property(s => s.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
                 entity.Property(s => s.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
             });
+        }
 
-            // Booking configuration - FIXED: Using Restrict instead of Cascade for User
+        private void ConfigureSlotEntity(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Slot>(entity =>
+            {
+                entity.HasKey(s => s.Id);
+                entity.Property(s => s.Date).IsRequired();
+                entity.Property(s => s.StartTime).IsRequired().HasMaxLength(10);
+                entity.Property(s => s.EndTime).IsRequired().HasMaxLength(10);
+                entity.Property(s => s.ServiceId).IsRequired();
+                entity.Property(s => s.MaxCapacity).IsRequired().HasDefaultValue(5);
+                entity.Property(s => s.CurrentBookings).IsRequired().HasDefaultValue(0);
+                entity.Property(s => s.IsActive).HasDefaultValue(true);
+                entity.Property(s => s.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(s => s.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+                // Configure RowVersion for concurrency
+                entity.Property(s => s.RowVersion).IsRowVersion().IsConcurrencyToken();
+
+                // Add indexes for performance
+                entity.HasIndex(s => new { s.Date, s.ServiceId, s.IsActive });
+                entity.HasIndex(s => new { s.Date, s.StartTime, s.ServiceId });
+
+                // Service relationship
+                entity.HasOne(s => s.Service)
+                    .WithMany(svc => svc.Slots)
+                    .HasForeignKey(s => s.ServiceId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+        }
+
+        private void ConfigureBookingEntity(ModelBuilder modelBuilder)
+        {
             modelBuilder.Entity<Booking>(entity =>
             {
                 entity.HasKey(b => b.Id);
+                entity.Property(b => b.Id).ValueGeneratedOnAdd(); // Auto-increment for int
 
+                // FIXED: Removed duplicate BookingId configuration
+                entity.Property(b => b.BookingId).IsRequired().HasMaxLength(20);
                 entity.HasIndex(b => b.BookingId).IsUnique();
-                entity.Property(b => b.BookingId).IsRequired().HasMaxLength(50);
-                entity.Property(b => b.VehicleType).IsRequired().HasMaxLength(50).HasDefaultValue("car");
-                entity.Property(b => b.ACType).HasMaxLength(100);
-                entity.Property(b => b.ACBrand).HasMaxLength(100);
-                entity.Property(b => b.SofaType).HasMaxLength(100);
+
+                entity.Property(b => b.UserId).IsRequired();
+                entity.Property(b => b.ServiceId).IsRequired();
+                entity.Property(b => b.SlotId).IsRequired();
+                entity.Property(b => b.ScheduledDate).IsRequired();
                 entity.Property(b => b.ScheduledTime).IsRequired().HasMaxLength(20);
+                entity.Property(b => b.VehicleType).IsRequired().HasMaxLength(50).HasDefaultValue("car");
                 entity.Property(b => b.Status).IsRequired().HasMaxLength(50).HasDefaultValue("pending");
                 entity.Property(b => b.PaymentStatus).IsRequired().HasMaxLength(50).HasDefaultValue("pending");
-                entity.Property(b => b.PaymentMethod).HasMaxLength(100);
-                entity.Property(b => b.AppliedOfferCode).HasMaxLength(20);
-                entity.Property(b => b.SpecialInstructions).HasMaxLength(500);
 
-                entity.Property(b => b.Subtotal).HasColumnType("decimal(10,2)");
-                entity.Property(b => b.DiscountAmount).HasColumnType("decimal(10,2)");
-                entity.Property(b => b.TaxAmount).HasColumnType("decimal(10,2)");
-                entity.Property(b => b.TotalAmount).HasColumnType("decimal(10,2)");
+                entity.Property(b => b.Subtotal).HasColumnType("decimal(10,2)").IsRequired();
+                entity.Property(b => b.DiscountAmount).HasColumnType("decimal(10,2)").HasDefaultValue(0);
+                entity.Property(b => b.TaxAmount).HasColumnType("decimal(10,2)").HasDefaultValue(0);
+                entity.Property(b => b.TotalAmount).HasColumnType("decimal(10,2)").IsRequired();
 
                 entity.Property(b => b.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
                 entity.Property(b => b.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
 
-                // CRITICAL FIX: Use Restrict for User to avoid multiple cascade paths
+                // Relationships
                 entity.HasOne(b => b.User)
                     .WithMany(u => u.Bookings)
                     .HasForeignKey(b => b.UserId)
-                    .OnDelete(DeleteBehavior.Restrict); // Changed from Cascade
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(b => b.Service)
                     .WithMany(s => s.Bookings)
                     .HasForeignKey(b => b.ServiceId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(b => b.Slot)
+                    .WithMany()
+                    .HasForeignKey(b => b.SlotId)
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(b => b.Address)
@@ -244,12 +309,13 @@ namespace CarWash.Api.Data
                     .HasForeignKey(b => b.AddressId)
                     .OnDelete(DeleteBehavior.SetNull);
             });
+        }
 
-            // ServiceReview configuration
+        private void ConfigureServiceReviewEntity(ModelBuilder modelBuilder)
+        {
             modelBuilder.Entity<ServiceReview>(entity =>
             {
                 entity.HasKey(sr => sr.Id);
-
                 entity.HasIndex(sr => new { sr.UserId, sr.ServiceId });
 
                 entity.Property(sr => sr.Rating).IsRequired();
@@ -266,12 +332,13 @@ namespace CarWash.Api.Data
                     .HasForeignKey(sr => sr.ServiceId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
+        }
 
-            // Offer configuration
+        private void ConfigureOfferEntity(ModelBuilder modelBuilder)
+        {
             modelBuilder.Entity<Offer>(entity =>
             {
                 entity.HasKey(o => o.Id);
-
                 entity.HasIndex(o => o.Code).IsUnique();
 
                 entity.Property(o => o.Title).IsRequired().HasMaxLength(100);
@@ -296,12 +363,13 @@ namespace CarWash.Api.Data
                 entity.Property(o => o.IsOneTimePerUser).HasDefaultValue(false);
                 entity.Property(o => o.IsDeleted).HasDefaultValue(false);
             });
+        }
 
-            // OTP configuration
+        private void ConfigureOTPEntity(ModelBuilder modelBuilder)
+        {
             modelBuilder.Entity<OTP>(entity =>
             {
                 entity.ToTable("OTPs");
-
                 entity.HasKey(o => o.Id);
 
                 entity.HasIndex(o => new { o.MobileNumber, o.Type, o.CreatedAt });
