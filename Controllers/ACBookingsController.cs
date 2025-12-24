@@ -10,7 +10,7 @@ namespace CarWash.Api.Controllers
 {
     [ApiController]
     [Route("api/ac-bookings")]
-    [Authorize(AuthenticationSchemes = "JwtBearer")]
+    //[Authorize(AuthenticationSchemes = "JwtBearer")]
     public class ACBookingsController : ControllerBase
     {
         private readonly IACServiceService _acServiceService;

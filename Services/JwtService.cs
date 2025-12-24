@@ -2,58 +2,76 @@
 using CarWash.Api.DTOs;
 using CarWash.Api.Models.Entities;
 using CarWash.Api.Interfaces;
-using CarWash.Api.Models.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.Extensions.Options;
 
 namespace CarWash.Api.Services
 {
     public class JwtService : IJwtService
     {
         private readonly IConfiguration _config;
-        private readonly JwtSettings _jwtSettings;
+        private readonly ILogger<JwtService> _logger;
 
-        public JwtService(IConfiguration config, IOptions<JwtSettings> jwtSettings)
+        public JwtService(IConfiguration config, ILogger<JwtService> logger)
         {
             _config = config;
-            _jwtSettings = jwtSettings.Value; 
+            _logger = logger;
+
+            // Log for debugging
+            var secret = _config["JWT:Secret"];
+            var issuer = _config["JWT:Issuer"];
+            _logger.LogInformation($"JWT Configuration - Issuer: {issuer}, Secret Length: {(secret?.Length ?? 0)}");
         }
 
         public string GenerateToken(string identifier, Guid userId)
         {
-            var key = _config["JWT:Secret"] ?? "change_this_in_production";
-            var issuer = _config["JWT:Issuer"] ?? "CarWashApi";
-            var audience = _config["JWT:Audience"] ?? "CarWashClient";
-            var expiresInHours = int.TryParse(_config["JWT:ExpiresInHours"], out var hours) ? hours : 24;
-
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-            var claims = new[]
+            try
             {
-                new Claim(JwtRegisteredClaimNames.Sub, identifier),
-                new Claim("userId", userId.ToString()),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
+                var jwtSection = _config.GetSection("JWT");
+                var key = jwtSection["Secret"] ?? throw new ArgumentNullException("JWT:Secret", "JWT Secret is required");
+                var issuer = jwtSection["Issuer"] ?? "CarWashApi";
+                var audience = jwtSection["Audience"] ?? "CarWashClient";
+                var expiresInHours = int.TryParse(jwtSection["ExpiresInHours"], out var hours) ? hours : 24;
 
-            var token = new JwtSecurityToken(
-                issuer: issuer,
-                audience: audience,
-                claims: claims,
-                expires: DateTime.UtcNow.AddHours(expiresInHours),
-                signingCredentials: credentials
-            );
+                // Validate secret key
+                if (key.Length < 32)
+                    throw new ArgumentException("JWT Secret must be at least 32 characters");
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+                var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+                var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+                var claims = new[]
+                {
+                    new Claim(JwtRegisteredClaimNames.Sub, identifier),
+                    new Claim("userId", userId.ToString()),
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                    new Claim(ClaimTypes.NameIdentifier, userId.ToString()) // Standard claim
+                };
+
+                var token = new JwtSecurityToken(
+                    issuer: issuer,
+                    audience: audience,
+                    claims: claims,
+                    expires: DateTime.UtcNow.AddHours(expiresInHours),
+                    signingCredentials: credentials
+                );
+
+                return new JwtSecurityTokenHandler().WriteToken(token);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating JWT token");
+                throw;
+            }
         }
 
         public string GenerateToken(User user)
         {
-            var identifier = !string.IsNullOrEmpty(user.Email) ? user.Email : user.MobileNumber.ToString() ?? "unknown";
+            var identifier = !string.IsNullOrEmpty(user.Email) ? user.Email :
+                            user.MobileNumber?.ToString() ?? user.Id.ToString();
             return GenerateToken(identifier, user.Id);
         }
 
@@ -63,16 +81,20 @@ namespace CarWash.Api.Services
 
             try
             {
-                var key = _config["JWT:Secret"] ?? "change_this_in_production";
+                var jwtSection = _config.GetSection("JWT");
+                var key = jwtSection["Secret"] ?? throw new ArgumentNullException("JWT:Secret");
+                var issuer = jwtSection["Issuer"] ?? "CarWashApi";
+                var audience = jwtSection["Audience"] ?? "CarWashClient";
+
                 var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
 
                 var tokenHandler = new JwtSecurityTokenHandler();
                 var validationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
-                    ValidIssuer = _config["JWT:Issuer"] ?? "CarWashApi",
+                    ValidIssuer = issuer,
                     ValidateAudience = true,
-                    ValidAudience = _config["JWT:Audience"] ?? "CarWashClient",
+                    ValidAudience = audience,
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = securityKey,
                     ValidateLifetime = true,
@@ -81,17 +103,23 @@ namespace CarWash.Api.Services
 
                 var principal = tokenHandler.ValidateToken(token, validationParameters, out _);
 
-                var userIdClaim = principal.FindFirst("userId")?.Value;
+                // Try multiple claim names
+                var userIdClaim = principal.FindFirst("userId")?.Value
+                                ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                                ?? principal.FindFirst("sub")?.Value;
+
                 if (!string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var parsedId))
                 {
                     userId = parsedId;
                     return true;
                 }
 
+                _logger.LogWarning($"User ID not found or invalid in token. Claims: {string.Join(", ", principal.Claims.Select(c => $"{c.Type}:{c.Value}"))}");
                 return false;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Token validation failed");
                 return false;
             }
         }
@@ -103,62 +131,76 @@ namespace CarWash.Api.Services
             rng.GetBytes(randomNumber);
             return Convert.ToBase64String(randomNumber);
         }
+
         public AuthResponseDto GenerateAuthResponse(Guid userId, string email, IEnumerable<string> roles)
         {
             var accessToken = GenerateAccessToken(userId, email, roles);
             var refreshToken = GenerateRefreshToken();
 
+            // Get expiration times from config
+            var jwtSection = _config.GetSection("JWT");
+            var accessTokenExpiry = DateTime.UtcNow.AddMinutes(
+                int.TryParse(jwtSection["AccessTokenExpirationMinutes"], out var accessMinutes) ? accessMinutes : 60);
+            var refreshTokenExpiry = DateTime.UtcNow.AddDays(
+                int.TryParse(jwtSection["RefreshTokenExpirationDays"], out var refreshDays) ? refreshDays : 7);
+
             return new AuthResponseDto
             {
                 AccessToken = accessToken,
                 RefreshToken = refreshToken,
-                AccessTokenExpiry = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes),
-                RefreshTokenExpiry = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays)
+                AccessTokenExpiry = accessTokenExpiry,
+                RefreshTokenExpiry = refreshTokenExpiry
             };
         }
+
         public string GenerateAccessToken(Guid userId, string email, IEnumerable<string> roles)
         {
-            var key = _jwtSettings.Secret;
-            var issuer = _jwtSettings.Issuer;
-            var audience = _jwtSettings.Audience;
-            var expiresInMinutes = _jwtSettings.AccessTokenExpirationMinutes;
-
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-            var claims = new List<Claim>
+            try
             {
-                new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
-                new Claim(JwtRegisteredClaimNames.Email, email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
+                var jwtSection = _config.GetSection("JWT");
+                var key = jwtSection["Secret"] ?? throw new ArgumentNullException("JWT:Secret");
+                var issuer = jwtSection["Issuer"] ?? "CarWashApi";
+                var audience = jwtSection["Audience"] ?? "CarWashClient";
+                var expiresInMinutes = int.TryParse(jwtSection["AccessTokenExpirationMinutes"], out var minutes) ? minutes : 60;
 
-            // Add role claims
-            foreach (var role in roles)
-            {
-                claims.Add(new Claim(ClaimTypes.Role, role));
+                var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+                var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+                var claims = new List<Claim>
+                {
+                    new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
+                    new Claim("userId", userId.ToString()),
+                    new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                };
+
+                // Add email claim if available
+                if (!string.IsNullOrEmpty(email))
+                {
+                    claims.Add(new Claim(ClaimTypes.Email, email));
+                }
+
+                // Add role claims
+                foreach (var role in roles ?? Enumerable.Empty<string>())
+                {
+                    claims.Add(new Claim(ClaimTypes.Role, role));
+                }
+
+                var token = new JwtSecurityToken(
+                    issuer: issuer,
+                    audience: audience,
+                    claims: claims,
+                    expires: DateTime.UtcNow.AddMinutes(expiresInMinutes),
+                    signingCredentials: credentials
+                );
+
+                return new JwtSecurityTokenHandler().WriteToken(token);
             }
-
-            var token = new JwtSecurityToken(
-                issuer: issuer,
-                audience: audience,
-                claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(expiresInMinutes),
-                signingCredentials: credentials
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-        private JwtSettings GetJwtSettings()
-        {
-            return new JwtSettings
+            catch (Exception ex)
             {
-                Secret = _config["JWT:Secret"] ?? "your-default-secret",
-                Issuer = _config["JWT:Issuer"] ?? "CarWashApi",
-                Audience = _config["JWT:Audience"] ?? "CarWashApp",
-                AccessTokenExpirationMinutes = _config.GetValue<int>("JWT:AccessTokenExpirationMinutes", 60),
-                RefreshTokenExpirationDays = _config.GetValue<int>("JWT:RefreshTokenExpirationDays", 7)
-            };
+                _logger.LogError(ex, "Error generating access token");
+                throw;
+            }
         }
     }
 }

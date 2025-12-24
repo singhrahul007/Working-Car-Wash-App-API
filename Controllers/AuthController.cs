@@ -20,15 +20,17 @@ namespace CarWash.Api.Controllers
         private readonly ILogger<AuthController> _logger;
         private readonly IVerificationService _verificationService;
         private readonly AppDbContext _context;
+        private readonly IConfiguration _config;
 
 
         public AuthController(IAuthService authService, ILogger<AuthController> logger, IVerificationService verificationService,
-            AppDbContext _context)
+            AppDbContext _context, IConfiguration configuration)
         {
             _authService = authService;
             _logger = logger;
             _verificationService = verificationService;
             _context = _context;
+            _config = configuration;
         }
 
         [HttpPost("login")]
@@ -538,7 +540,33 @@ namespace CarWash.Api.Controllers
                 return StatusCode(500, new { Success = false, Message = "An error occurred while uploading profile picture" });
             }
         }
+        [HttpGet("test-jwt")]
+        [AllowAnonymous]
+        public IActionResult TestJwt()
+        {
+            try
+            {
+                var jwtSection = _config.GetSection("JWT");
+                var secret = jwtSection["Secret"];
+                var issuer = jwtSection["Issuer"];
+                var audience = jwtSection["Audience"];
 
+                return Ok(new
+                {
+                    HasJwtSection = jwtSection.Exists(),
+                    SecretLength = secret?.Length ?? 0,
+                    Secret = string.IsNullOrEmpty(secret) ? "MISSING" : "PRESENT (hidden)",
+                    Issuer = issuer,
+                    Audience = audience,
+                    AccessTokenExpirationMinutes = jwtSection["AccessTokenExpirationMinutes"],
+                    RefreshTokenExpirationDays = jwtSection["RefreshTokenExpirationDays"]
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
         // Extend the existing Logout endpoint to also clear local storage data
 
 
