@@ -1,4 +1,4 @@
-using CarWash.Api.Data;
+﻿using CarWash.Api.Data;
 using CarWash.Api.Interfaces;
 using CarWash.Api.Middleware;
 using CarWash.Api.Models.Configuration; // Add this using
@@ -17,27 +17,27 @@ using System.Threading.RateLimiting;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add CORS policy BEFORE building the app
-builder.Services.AddCors(options =>
-{
-options.AddPolicy("AllowSpecificOrigin",
-    policy =>
-    {
-        // Allow specific origin
-        policy.WithOrigins("http://localhost:3000", "https://yourfrontend.com")
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials(); // If using cookies/authentication
-    });
+//builder.Services.AddCors(options =>
+//{
+//options.AddPolicy("AllowSpecificOrigin",
+//    policy =>
+//    {
+//        // Allow specific origin
+//        policy.WithOrigins("http://localhost:3000", "https://yourfrontend.com")
+//              .AllowAnyMethod()
+//              .AllowAnyHeader()
+//              .AllowCredentials(); // If using cookies/authentication
+//    });
 
-    // OR for development - allow all (not recommended for production)
-    options.AddPolicy("AllowAll",
-        policy =>
-        {
-            policy.AllowAnyOrigin()
-                  .AllowAnyMethod()
-                  .AllowAnyHeader();
-        });
-});
+//    // OR for development - allow all (not recommended for production)
+//    options.AddPolicy("AllowAll",
+//        policy =>
+//        {
+//            policy.AllowAnyOrigin()
+//                  .AllowAnyMethod()
+//                  .AllowAnyHeader();
+//        });
+//});
 
 // Add services to the container
 builder.Services.AddControllers();
@@ -164,7 +164,8 @@ builder.Services.AddCors(options =>
                     "http://localhost:19006", // Expo web
                     "exp://localhost:19000",   // Expo
                     "http://localhost:8081",    // React Native dev server
-                    "http://localhost:3000"     // React dev server
+                    "http://localhost:3000",     // React dev server
+                    "http://192.168.1.11:64316" // Add this line
                 )
                 .AllowAnyMethod()
                 .AllowAnyHeader()
@@ -187,20 +188,27 @@ builder.Services.AddRateLimiter(options =>
             }));
 });
 
+// Configure Kestrel to bind to all network interfaces for mobile app access
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenAnyIP(64316); // ✅ correct
+});
+
 // Add HttpContextAccessor for accessing current user
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
-app.UseCors("AllowSpecificOrigin"); // or "AllowAll" for development
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
-app.UseHttpsRedirection();
+else
+{
+    app.UseHttpsRedirection();
+}
 
 // Use CORS
 app.UseCors("MobileAppPolicy");
@@ -215,7 +223,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
+app.MapGet("/", () => "API is running 🚀");
 // Apply migrations and seed data
 using (var scope = app.Services.CreateScope())
 {
