@@ -1,5 +1,6 @@
-﻿using CarWash.Api.Models.Entities;
+using CarWash.Api.Models.Entities;
 using CarWash.Api.Models.Entities.AC;
+using CarWash.Api.Models.Entities.Sofa;
 using Microsoft.EntityFrameworkCore;
 
 namespace CarWash.Api.Data
@@ -26,6 +27,8 @@ namespace CarWash.Api.Data
         public DbSet<Slot> Slots { get; set; }
         public DbSet<ACService> ACServices { get; set; }
         public DbSet<ACBooking> ACBookings { get; set; }
+        public DbSet<SofaService> SofaServices { get; set; }
+        public DbSet<SofaBooking> SofaBookings { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -45,6 +48,8 @@ namespace CarWash.Api.Data
             ConfigureOTPEntity(modelBuilder);
             ConfigureACServiceEntity(modelBuilder);
             ConfigureACBookingEntity(modelBuilder);
+            ConfigureSofaServiceEntity(modelBuilder);
+            ConfigureSofaBookingEntity(modelBuilder);
         }
 
         private void ConfigureUserEntity(ModelBuilder modelBuilder)
@@ -513,6 +518,61 @@ namespace CarWash.Api.Data
                 entity.HasIndex(b => b.UserId);
                 entity.HasIndex(b => b.Status);
                 entity.HasIndex(b => b.PaymentStatus);
+                entity.HasIndex(b => b.ScheduledDate);
+                entity.HasIndex(b => b.CreatedAt);
+            });
+        }
+
+        private void ConfigureSofaServiceEntity(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<SofaService>(entity =>
+            {
+                entity.ToTable("SofaServices");
+                entity.HasKey(s => s.Id);
+
+                entity.Property(s => s.Name).IsRequired().HasMaxLength(200);
+                entity.Property(s => s.Description).HasMaxLength(1000);
+                entity.Property(s => s.Category).IsRequired().HasMaxLength(100);
+                entity.Property(s => s.Price).HasColumnType("decimal(10,2)").IsRequired();
+                entity.Property(s => s.DurationDisplay).HasMaxLength(50);
+                entity.Property(s => s.Includes).HasDefaultValue("[]");
+                entity.Property(s => s.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+                entity.HasIndex(s => s.Category);
+                entity.HasIndex(s => s.IsActive);
+                entity.HasIndex(s => s.IsPopular);
+                entity.HasIndex(s => s.DisplayOrder);
+            });
+        }
+
+        private void ConfigureSofaBookingEntity(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<SofaBooking>(entity =>
+            {
+                entity.ToTable("SofaBookings");
+                entity.HasKey(b => b.Id);
+
+                entity.Property(b => b.BookingId).IsRequired().HasMaxLength(25);
+                entity.Property(b => b.CustomerPhone).IsRequired().HasMaxLength(15);
+                entity.Property(b => b.CustomerAddress).IsRequired().HasMaxLength(500);
+                entity.Property(b => b.SofaType).IsRequired().HasMaxLength(100);
+                entity.Property(b => b.SofaCount).HasDefaultValue(1);
+                entity.Property(b => b.ScheduledTime).IsRequired().HasMaxLength(20);
+                entity.Property(b => b.Status).IsRequired().HasMaxLength(50).HasDefaultValue("pending");
+                entity.Property(b => b.TotalAmount).HasColumnType("decimal(10,2)").IsRequired();
+                entity.Property(b => b.PaymentStatus).HasMaxLength(50).HasDefaultValue("pending");
+                entity.Property(b => b.SpecialInstructions).HasMaxLength(500);
+                entity.Property(b => b.SelectedServices).HasDefaultValue("[]");
+                entity.Property(b => b.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+                entity.HasOne(b => b.User)
+                    .WithMany()
+                    .HasForeignKey(b => b.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(b => b.BookingId).IsUnique();
+                entity.HasIndex(b => b.UserId);
+                entity.HasIndex(b => b.Status);
                 entity.HasIndex(b => b.ScheduledDate);
                 entity.HasIndex(b => b.CreatedAt);
             });

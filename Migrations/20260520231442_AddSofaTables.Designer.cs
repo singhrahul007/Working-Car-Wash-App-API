@@ -4,6 +4,7 @@ using CarWash.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CarWash.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260520231442_AddSofaTables")]
+    partial class AddSofaTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1082,6 +1085,9 @@ namespace CarWash.Api.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(1);
 
+                    b.Property<int?>("SofaServiceId")
+                        .HasColumnType("int");
+
                     b.Property<string>("SofaType")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1116,6 +1122,8 @@ namespace CarWash.Api.Migrations
                     b.HasIndex("CreatedAt");
 
                     b.HasIndex("ScheduledDate");
+
+                    b.HasIndex("SofaServiceId");
 
                     b.HasIndex("Status");
 
@@ -1450,6 +1458,10 @@ namespace CarWash.Api.Migrations
 
             modelBuilder.Entity("CarWash.Api.Models.Entities.Sofa.SofaBooking", b =>
                 {
+                    b.HasOne("CarWash.Api.Models.Entities.Sofa.SofaService", null)
+                        .WithMany("SofaBookings")
+                        .HasForeignKey("SofaServiceId");
+
                     b.HasOne("CarWash.Api.Models.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
@@ -1495,6 +1507,11 @@ namespace CarWash.Api.Migrations
                     b.Navigation("ServiceReviews");
 
                     b.Navigation("Slots");
+                });
+
+            modelBuilder.Entity("CarWash.Api.Models.Entities.Sofa.SofaService", b =>
+                {
+                    b.Navigation("SofaBookings");
                 });
 
             modelBuilder.Entity("CarWash.Api.Models.Entities.User", b =>

@@ -1,4 +1,4 @@
-﻿using CarWash.Api.Data;
+using CarWash.Api.Data;
 using CarWash.Api.Interfaces;
 using CarWash.Api.Middleware;
 using CarWash.Api.Models.Configuration; // Add this using
@@ -7,6 +7,8 @@ using CarWash.Api.Services.AC;
 using CarWash.Api.Services.Interfaces;
 using CarWash.Api.Services.Interfaces.AC;
 using CarWash.Api.Services.Interfaces.Slots;
+using CarWash.Api.Services.Interfaces.Sofa;
+using CarWash.Api.Services.Sofa;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -17,27 +19,27 @@ using System.Threading.RateLimiting;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add CORS policy BEFORE building the app
-//builder.Services.AddCors(options =>
-//{
-//options.AddPolicy("AllowSpecificOrigin",
-//    policy =>
-//    {
-//        // Allow specific origin
-//        policy.WithOrigins("http://localhost:3000", "https://yourfrontend.com")
-//              .AllowAnyMethod()
-//              .AllowAnyHeader()
-//              .AllowCredentials(); // If using cookies/authentication
-//    });
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowSpecificOrigin",
+        policy =>
+        {
+            // Allow specific origin
+            policy.WithOrigins("http://localhost:3000", "https://yourfrontend.com")
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials(); // If using cookies/authentication
+        });
 
-//    // OR for development - allow all (not recommended for production)
-//    options.AddPolicy("AllowAll",
-//        policy =>
-//        {
-//            policy.AllowAnyOrigin()
-//                  .AllowAnyMethod()
-//                  .AllowAnyHeader();
-//        });
-//});
+    // OR for development - allow all (not recommended for production)
+    options.AddPolicy("AllowAll",
+        policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        });
+});
 
 // Add services to the container
 builder.Services.AddControllers();
@@ -110,6 +112,7 @@ builder.Services.AddScoped<ICacheService, CacheService>();
 builder.Services.AddScoped<IVerificationService, VerificationService>();
 builder.Services.AddScoped<ISlotService, SlotService>();
 builder.Services.AddScoped<IACServiceService, ACServiceService>();
+builder.Services.AddScoped<ISofaServiceService, SofaServiceService>();
 // Remove duplicate registration of IJwtService
 // builder.Services.AddScoped<IJwtService, JwtService>(); // Already registered above
 
@@ -165,7 +168,7 @@ builder.Services.AddCors(options =>
                     "exp://localhost:19000",   // Expo
                     "http://localhost:8081",    // React Native dev server
                     "http://localhost:3000",     // React dev server
-                    "http://192.168.1.11:64316" // Add this line
+                    "http://192.168.1.10:64316" // Add this line
                 )
                 .AllowAnyMethod()
                 .AllowAnyHeader()
