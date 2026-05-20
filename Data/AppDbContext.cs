@@ -1,6 +1,8 @@
 using CarWash.Api.Models.Entities;
 using CarWash.Api.Models.Entities.AC;
 using CarWash.Api.Models.Entities.Sofa;
+using CarWash.Api.Models.Entities.CarWash;
+using CarWash.Api.Models.Entities.BikeWash;
 using Microsoft.EntityFrameworkCore;
 
 namespace CarWash.Api.Data
@@ -29,6 +31,10 @@ namespace CarWash.Api.Data
         public DbSet<ACBooking> ACBookings { get; set; }
         public DbSet<SofaService> SofaServices { get; set; }
         public DbSet<SofaBooking> SofaBookings { get; set; }
+        public DbSet<CarWashService> CarWashServices { get; set; }
+        public DbSet<CarWashBooking> CarWashBookings { get; set; }
+        public DbSet<BikeWashService> BikeWashServices { get; set; }
+        public DbSet<BikeWashBooking> BikeWashBookings { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -50,6 +56,10 @@ namespace CarWash.Api.Data
             ConfigureACBookingEntity(modelBuilder);
             ConfigureSofaServiceEntity(modelBuilder);
             ConfigureSofaBookingEntity(modelBuilder);
+            ConfigureCarWashServiceEntity(modelBuilder);
+            ConfigureCarWashBookingEntity(modelBuilder);
+            ConfigureBikeWashServiceEntity(modelBuilder);
+            ConfigureBikeWashBookingEntity(modelBuilder);
         }
 
         private void ConfigureUserEntity(ModelBuilder modelBuilder)
@@ -557,6 +567,114 @@ namespace CarWash.Api.Data
                 entity.Property(b => b.CustomerAddress).IsRequired().HasMaxLength(500);
                 entity.Property(b => b.SofaType).IsRequired().HasMaxLength(100);
                 entity.Property(b => b.SofaCount).HasDefaultValue(1);
+                entity.Property(b => b.ScheduledTime).IsRequired().HasMaxLength(20);
+                entity.Property(b => b.Status).IsRequired().HasMaxLength(50).HasDefaultValue("pending");
+                entity.Property(b => b.TotalAmount).HasColumnType("decimal(10,2)").IsRequired();
+                entity.Property(b => b.PaymentStatus).HasMaxLength(50).HasDefaultValue("pending");
+                entity.Property(b => b.SpecialInstructions).HasMaxLength(500);
+                entity.Property(b => b.SelectedServices).HasDefaultValue("[]");
+                entity.Property(b => b.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+                entity.HasOne(b => b.User)
+                    .WithMany()
+                    .HasForeignKey(b => b.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(b => b.BookingId).IsUnique();
+                entity.HasIndex(b => b.UserId);
+                entity.HasIndex(b => b.Status);
+                entity.HasIndex(b => b.ScheduledDate);
+                entity.HasIndex(b => b.CreatedAt);
+            });
+        }
+
+        private void ConfigureCarWashServiceEntity(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<CarWashService>(entity =>
+            {
+                entity.ToTable("CarWashServices");
+                entity.HasKey(s => s.Id);
+
+                entity.Property(s => s.Name).IsRequired().HasMaxLength(200);
+                entity.Property(s => s.Description).HasMaxLength(1000);
+                entity.Property(s => s.Category).IsRequired().HasMaxLength(100);
+                entity.Property(s => s.Price).HasColumnType("decimal(10,2)").IsRequired();
+                entity.Property(s => s.DurationDisplay).HasMaxLength(50);
+                entity.Property(s => s.Includes).HasDefaultValue("[]");
+                entity.Property(s => s.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+                entity.HasIndex(s => s.Category);
+                entity.HasIndex(s => s.IsActive);
+                entity.HasIndex(s => s.IsPopular);
+                entity.HasIndex(s => s.DisplayOrder);
+            });
+        }
+
+        private void ConfigureCarWashBookingEntity(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<CarWashBooking>(entity =>
+            {
+                entity.ToTable("CarWashBookings");
+                entity.HasKey(b => b.Id);
+
+                entity.Property(b => b.BookingId).IsRequired().HasMaxLength(25);
+                entity.Property(b => b.CustomerPhone).IsRequired().HasMaxLength(15);
+                entity.Property(b => b.CustomerAddress).IsRequired().HasMaxLength(500);
+                entity.Property(b => b.VehicleSize).IsRequired().HasMaxLength(100);
+                entity.Property(b => b.ScheduledTime).IsRequired().HasMaxLength(20);
+                entity.Property(b => b.Status).IsRequired().HasMaxLength(50).HasDefaultValue("pending");
+                entity.Property(b => b.TotalAmount).HasColumnType("decimal(10,2)").IsRequired();
+                entity.Property(b => b.PaymentStatus).HasMaxLength(50).HasDefaultValue("pending");
+                entity.Property(b => b.SpecialInstructions).HasMaxLength(500);
+                entity.Property(b => b.SelectedServices).HasDefaultValue("[]");
+                entity.Property(b => b.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+                entity.HasOne(b => b.User)
+                    .WithMany()
+                    .HasForeignKey(b => b.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(b => b.BookingId).IsUnique();
+                entity.HasIndex(b => b.UserId);
+                entity.HasIndex(b => b.Status);
+                entity.HasIndex(b => b.ScheduledDate);
+                entity.HasIndex(b => b.CreatedAt);
+            });
+        }
+
+        private void ConfigureBikeWashServiceEntity(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<BikeWashService>(entity =>
+            {
+                entity.ToTable("BikeWashServices");
+                entity.HasKey(s => s.Id);
+
+                entity.Property(s => s.Name).IsRequired().HasMaxLength(200);
+                entity.Property(s => s.Description).HasMaxLength(1000);
+                entity.Property(s => s.Category).IsRequired().HasMaxLength(100);
+                entity.Property(s => s.Price).HasColumnType("decimal(10,2)").IsRequired();
+                entity.Property(s => s.DurationDisplay).HasMaxLength(50);
+                entity.Property(s => s.Includes).HasDefaultValue("[]");
+                entity.Property(s => s.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+                entity.HasIndex(s => s.Category);
+                entity.HasIndex(s => s.IsActive);
+                entity.HasIndex(s => s.IsPopular);
+                entity.HasIndex(s => s.DisplayOrder);
+            });
+        }
+
+        private void ConfigureBikeWashBookingEntity(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<BikeWashBooking>(entity =>
+            {
+                entity.ToTable("BikeWashBookings");
+                entity.HasKey(b => b.Id);
+
+                entity.Property(b => b.BookingId).IsRequired().HasMaxLength(25);
+                entity.Property(b => b.CustomerPhone).IsRequired().HasMaxLength(15);
+                entity.Property(b => b.CustomerAddress).IsRequired().HasMaxLength(500);
+                entity.Property(b => b.BikeType).IsRequired().HasMaxLength(100);
                 entity.Property(b => b.ScheduledTime).IsRequired().HasMaxLength(20);
                 entity.Property(b => b.Status).IsRequired().HasMaxLength(50).HasDefaultValue("pending");
                 entity.Property(b => b.TotalAmount).HasColumnType("decimal(10,2)").IsRequired();

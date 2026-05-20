@@ -1,15 +1,16 @@
-﻿namespace CarWash.Api.Services.AC
+using CarWash.Api.Data;
+using CarWash.Api.Models.DTOs;
+using CarWash.Api.Models.DTOs.AC;
+using CarWash.Api.Models.Entities;
+using CarWash.Api.Models.Entities.AC;
+using CarWash.Api.Services.Interfaces;
+using CarWash.Api.Services.Interfaces.AC;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System.Text.Json;
+
+namespace CarWash.Api.Services.AC
 {
-    using CarWash.Api.Data;
-    using CarWash.Api.Models.DTOs;
-    using CarWash.Api.Models.DTOs.AC;
-    using CarWash.Api.Models.Entities;
-    using CarWash.Api.Models.Entities.AC;
-    using CarWash.Api.Services.Interfaces;
-    using CarWash.Api.Services.Interfaces.AC;
-    using Microsoft.EntityFrameworkCore;
-    using Microsoft.Extensions.Logging;
-    using System.Text.Json;
 
     public class ACServiceService : IACServiceService
     {

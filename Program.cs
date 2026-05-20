@@ -8,7 +8,11 @@ using CarWash.Api.Services.Interfaces;
 using CarWash.Api.Services.Interfaces.AC;
 using CarWash.Api.Services.Interfaces.Slots;
 using CarWash.Api.Services.Interfaces.Sofa;
+using CarWash.Api.Services.Interfaces.CarWash;
+using CarWash.Api.Services.Interfaces.BikeWash;
 using CarWash.Api.Services.Sofa;
+using CarWash.Api.Services.CarWash;
+using CarWash.Api.Services.BikeWash;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -113,6 +117,8 @@ builder.Services.AddScoped<IVerificationService, VerificationService>();
 builder.Services.AddScoped<ISlotService, SlotService>();
 builder.Services.AddScoped<IACServiceService, ACServiceService>();
 builder.Services.AddScoped<ISofaServiceService, SofaServiceService>();
+builder.Services.AddScoped<ICarWashServiceService, CarWashServiceService>();
+builder.Services.AddScoped<IBikeWashServiceService, BikeWashServiceService>();
 // Remove duplicate registration of IJwtService
 // builder.Services.AddScoped<IJwtService, JwtService>(); // Already registered above
 
