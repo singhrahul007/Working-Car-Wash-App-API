@@ -173,9 +173,6 @@ namespace CarWash.Api.Services.Sofa
                 _context.SofaBookings.Add(booking);
                 await _context.SaveChangesAsync();
 
-                // Mirror to legacy Bookings table for OrdersScreen compatibility
-                await SaveToBookingHistoryAsync(booking);
-
                 await transaction.CommitAsync();
 
                 return new SofaServiceResponse<SofaBookingResponseDTOs>
@@ -346,48 +343,5 @@ namespace CarWash.Api.Services.Sofa
             var random = new Random().Next(1000, 9999);
             return $"SOFA{date}{random}";
         }
-
-        /// <summary>
-        /// Attempt to mirror the booking to the legacy Bookings table so OrdersScreen can display it.
-        /// NOTE: If the legacy table's FK constraints reject the insert, we log and continue — non-fatal.
-        /// </summary>
-        private async Task SaveToBookingHistoryAsync(SofaBooking booking)
-        {
-            try
-            {
-                // The legacy Bookings table requires valid ServiceId and SlotId FKs.
-                // We use 0 here; if the DB rejects it (FK violation), the catch handles it gracefully.
-                var legacy = new Booking
-                {
-                    BookingId = booking.BookingId,
-                    UserId = booking.UserId,
-                    ServiceId = 0,
-                    SlotId = 0,
-                    VehicleType = "Sofa",
-                    SofaType = booking.SofaType,
-                    SofaCount = booking.SofaCount,
-                    ScheduledDate = booking.ScheduledDate,
-                    ScheduledTime = booking.ScheduledTime,
-                    Status = booking.Status,
-                    Subtotal = booking.TotalAmount,
-                    DiscountAmount = 0,
-                    TaxAmount = 0,
-                    TotalAmount = booking.TotalAmount,
-                    PaymentStatus = booking.PaymentStatus,
-                    SpecialInstructions = booking.SpecialInstructions,
-                    CreatedAt = booking.CreatedAt
-                };
-
-                _context.Bookings.Add(legacy);
-                await _context.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Could not mirror SofaBooking {BookingId} to legacy Bookings table (FK constraints). This is non-fatal.", booking.BookingId);
-                // Detach the failed entity so the context stays clean
-                _context.ChangeTracker.Clear();
-            }
-        }
-
     }
 }

@@ -1,4 +1,4 @@
-﻿// Entities/Booking.cs
+// Entities/Booking.cs
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -20,7 +20,7 @@ namespace CarWash.Api.Models.Entities
 
         [Required]
         public int ServiceId { get; set; }
-        public int SlotId { get; set; }
+        public int? SlotId { get; set; }
 
         public int? AddressId { get; set; }
 
@@ -85,7 +85,7 @@ namespace CarWash.Api.Models.Entities
         [ForeignKey("ServiceId")]
         public virtual Service Service { get; set; } = null!;
         [ForeignKey("SlotId")]
-        public virtual Slot Slot { get; set; }
+        public virtual Slot? Slot { get; set; }
 
         [ForeignKey("AddressId")]
         public virtual Address? Address { get; set; }

@@ -292,7 +292,7 @@ namespace CarWash.Api.Data
 
                 entity.Property(b => b.UserId).IsRequired();
                 entity.Property(b => b.ServiceId).IsRequired();
-                entity.Property(b => b.SlotId).IsRequired();
+                entity.Property(b => b.SlotId);  // nullable — not required for non-slot bookings
                 entity.Property(b => b.ScheduledDate).IsRequired();
                 entity.Property(b => b.ScheduledTime).IsRequired().HasMaxLength(20);
                 entity.Property(b => b.VehicleType).IsRequired().HasMaxLength(50).HasDefaultValue("car");
@@ -321,6 +321,7 @@ namespace CarWash.Api.Data
                 entity.HasOne(b => b.Slot)
                     .WithMany()
                     .HasForeignKey(b => b.SlotId)
+                    .IsRequired(false)
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(b => b.Address)

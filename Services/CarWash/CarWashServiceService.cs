@@ -174,9 +174,6 @@ namespace CarWash.Api.Services.CarWash
                 _context.CarWashBookings.Add(booking);
                 await _context.SaveChangesAsync();
 
-                // Mirror to legacy Bookings table for OrdersScreen compatibility
-                await SaveToBookingHistoryAsync(booking);
-
                 await transaction.CommitAsync();
 
                 return new CarWashServiceResponse<CarWashBookingResponseDTOs>
@@ -340,40 +337,5 @@ namespace CarWash.Api.Services.CarWash
             };
         }
 
-        /// <summary>
-        /// Attempt to mirror the booking to the legacy Bookings table so OrdersScreen can display it.
-        /// </summary>
-        private async Task SaveToBookingHistoryAsync(CarWashBooking booking)
-        {
-            try
-            {
-                var legacy = new Booking
-                {
-                    BookingId = booking.BookingId,
-                    UserId = booking.UserId,
-                    ServiceId = 0,
-                    SlotId = 0,
-                    VehicleType = "Car",
-                    ScheduledDate = booking.ScheduledDate,
-                    ScheduledTime = booking.ScheduledTime,
-                    Status = booking.Status,
-                    Subtotal = booking.TotalAmount,
-                    DiscountAmount = 0,
-                    TaxAmount = 0,
-                    TotalAmount = booking.TotalAmount,
-                    PaymentStatus = booking.PaymentStatus,
-                    SpecialInstructions = booking.SpecialInstructions,
-                    CreatedAt = booking.CreatedAt
-                };
-
-                _context.Bookings.Add(legacy);
-                await _context.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Could not mirror CarWashBooking {BookingId} to legacy Bookings table. This is non-fatal.", booking.BookingId);
-                _context.ChangeTracker.Clear();
-            }
-        }
     }
 }

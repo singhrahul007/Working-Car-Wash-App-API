@@ -213,8 +213,6 @@ namespace CarWash.Api.Services.AC
                 await _context.SaveChangesAsync();
 
                 // Save to history as well (for compatibility with existing app)
-                await SaveToBookingHistoryAsync(booking);
-
                 await transaction.CommitAsync();
 
                 var bookingDtoResult = MapToACBookingDto(booking);
@@ -447,42 +445,5 @@ namespace CarWash.Api.Services.AC
             return $"AC{date}{random}";
         }
 
-        private async Task SaveToBookingHistoryAsync(ACBooking booking)
-        {
-            try
-            {
-                // Also save to existing booking table for compatibility
-                var existingBooking = new Booking
-                {
-                    BookingId = booking.BookingId,
-                    UserId = booking.UserId,
-                    ServiceId = 0, // Not applicable for AC services
-                    SlotId = 0,
-                    VehicleType = "AC",
-                    ACType = booking.ACType,
-                    ACBrand = booking.ACBrand,
-                    ScheduledDate = booking.ScheduledDate,
-                    ScheduledTime = booking.ScheduledTime,
-                    Status = booking.Status,
-                    Subtotal = booking.TotalAmount,
-                    DiscountAmount = 0,
-                    TaxAmount = 0,
-                    TotalAmount = booking.TotalAmount,
-                    PaymentStatus = booking.PaymentStatus,
-                    SpecialInstructions = booking.SpecialInstructions,
-                    CreatedAt = booking.CreatedAt
-                };
-
-                _context.Bookings.Add(existingBooking);
-                await _context.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error saving AC booking to history");
-                // Don't throw, just log
-            }
-        }
     }
 }
-
-

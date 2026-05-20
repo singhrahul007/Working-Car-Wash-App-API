@@ -1,8 +1,9 @@
-﻿using CarWash.Api.Models.DTOs.Bookings;
+using CarWash.Api.Models.DTOs.Bookings;
 using CarWash.Api.Models.DTOs.Slots;
 using CarWash.Api.Services.Interfaces.Slots;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
-//using Swashbuckle.AspNetCore.Annotations;
 
 namespace CarWash.Api.Controllers
 {
@@ -248,11 +249,17 @@ namespace CarWash.Api.Controllers
         ///     }
         /// </remarks>
         [HttpPost("book")]
-        //[SwaggerOperation(Summary = "Book a slot", Description = "Book a specific time slot")]
-        //[SwaggerResponse(200, "Booking successful", typeof(BookingResultsDTOs))]
-        //[SwaggerResponse(400, "Booking failed")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<ActionResult<BookingResultsDTOs>> BookSlot([FromBody] BookingRequestDTOs bookingRequest)
         {
+            // Extract userId from JWT — never trust UserId from the request body
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "userId")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+                return Unauthorized();
+
+            // Override whatever userId was in the body with the authenticated one
+            bookingRequest.UserId = userId;
+
             var result = await _slotService.BookSlotAsync(bookingRequest);
 
             if (!result.Success)
@@ -267,9 +274,7 @@ namespace CarWash.Api.Controllers
         /// <param name="bookingId">Booking ID to cancel</param>
         /// <returns>Cancellation confirmation</returns>
         [HttpPost("cancel-booking/{bookingId}")]
-        //[SwaggerOperation(Summary = "Cancel booking", Description = "Cancel an existing booking and free up the slot")]
-        //[SwaggerResponse(200, "Booking cancelled")]
-        //[SwaggerResponse(404, "Booking not found")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> CancelBooking(int bookingId)
         {
             var result = await _slotService.CancelBookingAsync(bookingId);
